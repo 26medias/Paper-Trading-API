@@ -1,10 +1,10 @@
 import os
 import firebase_admin
 from firebase_admin import credentials, firestore
-from flask import Flask
+from flask import Flask, jsonify
 from flask_cors import CORS
-from project_blueprint import project_bp
-from trade_blueprint import trade_bp
+from project_blueprint import create_project_blueprint
+from trade_blueprint import create_trade_blueprint
 
 # Initialize Firebase app
 cred = credentials.Certificate('firebase.json')
@@ -15,8 +15,9 @@ def create_app(*args, **kwargs):
     app = Flask(__name__)
     CORS(app)  # Enable CORS for all routes
 
-    app.register_blueprint(project_bp)
-    app.register_blueprint(trade_bp)
+    # Register blueprints with the Firestore client
+    app.register_blueprint(create_project_blueprint(db))
+    app.register_blueprint(create_trade_blueprint(db))
 
     @app.route('/', defaults={'path': ''})
     @app.route('/<path:path>')

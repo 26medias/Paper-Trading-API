@@ -14,8 +14,8 @@ class DataCaching:
         self.table = table
         self.tickers = []
         self.timeframes = {
-            '1min': {'interval': '1m', 'period': '7d'},
-            '1h': {'interval': '1h', 'period': '60d'},
+            '1min': {'interval': '1m', 'period': 'max'},
+            '1h': {'interval': '1h', 'period': '3mo'},
             '1D': {'interval': '1d', 'period': 'max'}
         }
         self.max_datapoints = 250
@@ -38,6 +38,8 @@ class DataCaching:
                         if len(ticker_data) >= 220:
                             try:
                                 ticker_data = self._calculate_market_cycle(ticker_data)
+                                print(f"== Ticker :: {ticker} ==")
+                                print(ticker_data.tail(10))
                                 if timeframe == '1D':
                                     self._generate_and_save_5d_data(ticker, ticker_data)
                                 ticker_data = self._trim_data(ticker_data)
@@ -62,16 +64,19 @@ class DataCaching:
                 df_1d = self.get_data(ticker, '1D')
                 df_5d = self.get_data(ticker, '5D')
 
-                if df_1min is not None and df_1h is not None and df_1d is not None and df_5d is not None:
+                if df_1min is not None:
                     combined_df = df_1min.copy()
                     combined_df['marketCycle_1m'] = df_1min['marketCycle']
-                    combined_df['marketCycle_1h'] = df_1h['marketCycle'].reindex(combined_df.index, method='nearest')
-                    combined_df['marketCycle_1d'] = df_1d['marketCycle'].reindex(combined_df.index, method='nearest')
-                    combined_df['marketCycle_5d'] = df_5d['marketCycle'].reindex(combined_df.index, method='nearest')
+
+                    if df_1h is not None:
+                        combined_df['marketCycle_1h'] = df_1h['marketCycle'].reindex(combined_df.index, method='nearest')
+                    if df_1d is not None:
+                        combined_df['marketCycle_1d'] = df_1d['marketCycle'].reindex(combined_df.index, method='nearest')
+                    if df_5d is not None:
+                        combined_df['marketCycle_5d'] = df_5d['marketCycle'].reindex(combined_df.index, method='nearest')
                     
                     self._save_to_firestore(ticker, 'mc', combined_df)
-                else:
-                    print(f"Not all necessary data available for {ticker} to generate combined market cycle data.")
+
             except Exception as e:
                 print(f"Error generating combined market cycle data for {ticker}: {e}")
 
@@ -119,9 +124,36 @@ class DataCaching:
                 print(f"Error updating data for {self.tickers} on {timeframe} timeframe: {e}")
                 continue
 
+        # Generate the combined market cycle dataseries for each ticker
+        for ticker in self.tickers:
+            try:
+                print(f"Generating combined market cycle data for {ticker}...")
+                df_1min = self.get_data(ticker, '1min')
+                df_1h = self.get_data(ticker, '1h')
+                df_1d = self.get_data(ticker, '1D')
+                df_5d = self.get_data(ticker, '5D')
+
+                if df_1min is not None:
+                    combined_df = df_1min.copy()
+                    combined_df['marketCycle_1m'] = df_1min['marketCycle']
+
+                    if df_1h is not None:
+                        combined_df['marketCycle_1h'] = df_1h['marketCycle'].reindex(combined_df.index, method='nearest')
+                    if df_1d is not None:
+                        combined_df['marketCycle_1d'] = df_1d['marketCycle'].reindex(combined_df.index, method='nearest')
+                    if df_5d is not None:
+                        combined_df['marketCycle_5d'] = df_5d['marketCycle'].reindex(combined_df.index, method='nearest')
+                    
+                    self._save_to_firestore(ticker, 'mc', combined_df)
+
+            except Exception as e:
+                print(f"Error generating combined market cycle data for {ticker}: {e}")
 
 
-    def _calculate_market_cycle(self, data):
+
+    def _calculate_market_cycle(self, _data):
+        data = _data.copy()
+        data = data.dropna(subset=[col for col in data.columns if col != 'marketCycle'])
         donchianPrice = data['Close']
         rsiPrice = data['Close']
         srsiPrice = data['Close']

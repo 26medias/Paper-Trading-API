@@ -315,3 +315,57 @@ This documentation provides details on how to integrate with the Paper Trading A
   "watchlist": ["AAPL"]
 }
 ```
+
+---
+
+#### 11. Initialize Data
+**URL:** `/trade/init`
+
+**Method:** `GET`
+
+**Description:** Initializes the data caching by downloading the data for specified tickers and timeframes.
+
+**Parameters:** None
+
+**Response:**
+```
+{
+  "status": "ok"
+}
+```
+
+---
+
+#### 12. Update Data
+**URL:** `/trade/tick`
+
+**Method:** `GET`
+
+**Description:** Updates the cached data by downloading the latest data for specified tickers and timeframes.
+
+**Parameters:** None
+
+**Response:**
+```
+{
+  "status": "ok"
+}
+```
+
+---
+
+#### 13. Generate Chart
+**URL:** `/trade/chart`
+
+**Method:** `GET`
+
+**Description:** Generates a chart for a specified ticker.
+
+**Parameters:** None
+
+**Response:**
+```
+{
+  "status": "ok"
+}
+```

@@ -1,19 +1,24 @@
 # trade_service.py
-from firebase_admin import firestore
-import yfinance as yf
 import datetime
 from DataCaching import DataCaching
 
 class TradeService:
     def __init__(self, db):
         self.db = db
+        self.dataCache = DataCaching(self.db)
 
     def get_current_price(self, ticker):
-        """Fetches the current price for a given ticker symbol using yfinance."""
+        """Fetches the current price for a given ticker symbol from the {ticker}_1min table."""
         try:
-            stock = yf.Ticker(ticker)
-            current_price = stock.history(period='1d')['Close'][0]
-            return float(current_price)
+            doc_ref = self.db.collection(self.dataCache.table).document(f"{ticker}_1min")
+            doc = doc_ref.get()
+            if doc.exists:
+                data = doc.to_dict()['data']
+                if data:
+                    last_data_point = data[-1]
+                    current_price = last_data_point['Close']
+                    return float(current_price)
+            return None
         except Exception as e:
             print(f"Error fetching price for {ticker}: {e}")
             return None

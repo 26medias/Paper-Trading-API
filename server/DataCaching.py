@@ -229,3 +229,54 @@ class DataCaching:
             ], output_filename=output_filename)
         else:
             print(f"No data available for {ticker} to generate chart.")
+
+
+    def tickerStatus(self, ticker):
+        def get_status(ticker, timeframe, mc_field):
+            data = self.get_data(ticker, timeframe, trim=False)
+            if data is None or len(data) < 3:
+                return {
+                    "value": None,
+                    "delta0": None,
+                    "delta1": None
+                }
+            latest = data.iloc[-1][mc_field] if mc_field in data.columns else None
+            previous = data.iloc[-2][mc_field] if mc_field in data.columns else None
+            previous2 = data.iloc[-3][mc_field] if mc_field in data.columns else None
+            if latest is not None and previous is not None and previous2 is not None:
+                delta0 = latest - previous
+                delta1 = previous - previous2
+            else:
+                delta0 = None
+                delta1 = None
+            return {
+                "value": latest,
+                "delta0": delta0,
+                "delta1": delta1
+            }
+
+        doc_ref = self.db.collection(self.table).document(f"{ticker}_mc")
+        doc = doc_ref.get()
+        if not doc.exists:
+            return None
+
+        data = doc.to_dict().get('data', [])
+        if len(data) < 3:
+            return None
+
+        latest_timestamp = doc.to_dict().get('latest_timestamp', None)
+        last_10 = data[-10:]
+
+        status = {
+            "1min": get_status(ticker, "1min", 'marketCycle'),
+            "1h": get_status(ticker, "1h", 'marketCycle'),
+            "1d": get_status(ticker, "1D", 'marketCycle'),
+            "5d": get_status(ticker, "5D", 'marketCycle')
+        }
+
+        return {
+            "ticker": ticker,
+            "latest_timestamp": latest_timestamp,
+            "last_10": last_10,
+            "status": status
+        }

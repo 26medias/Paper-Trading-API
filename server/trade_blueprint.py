@@ -1,11 +1,13 @@
 # trade_blueprint.py
-from flask import Blueprint, request, jsonify
+from flask import Blueprint, request, jsonify, send_file
 from trade_service import TradeService
 from DataCaching import DataCaching
+from Generator import Generator
 
 def create_trade_blueprint(db):
     trade_bp = Blueprint('trade', __name__, url_prefix='/trade')
     trade_service = TradeService(db)
+    generator = Generator(db)
 
     @trade_bp.route('/buy', methods=['POST'])
     def buy_trade():
@@ -72,4 +74,25 @@ def create_trade_blueprint(db):
         cache.chart('NVDA', 'NVDA.png')
         return jsonify({"status": "ok"}), 200
 
+    @trade_bp.route('/status', methods=['GET'])
+    def status_data():
+        ticker = request.args.get('ticker')
+        cache = DataCaching(db=db)
+        generator.status(ticker)
+        return jsonify(cache.tickerStatus(ticker)), 200
+
+    @trade_bp.route('/img-candles', methods=['GET'])
+    def get_image_candles():
+        ticker = request.args.get('ticker')
+        cache = DataCaching(db=db)
+        images = generator.status(ticker)
+        return send_file(images["candles"], mimetype='image/png')
+    
+    @trade_bp.route('/img-status', methods=['GET'])
+    def get_image_status():
+        ticker = request.args.get('ticker')
+        cache = DataCaching(db=db)
+        images = generator.status(ticker)
+        return send_file(images["status"], mimetype='image/png')
+    
     return trade_bp

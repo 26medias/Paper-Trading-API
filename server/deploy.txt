@@ -1,4 +1,4 @@
-gcloud functions deploy paper-api \
+gcloud functions deploy paper-trading \
   --runtime python310 \
   --trigger-http \
   --allow-unauthenticated \

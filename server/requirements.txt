@@ -6,3 +6,5 @@ yfinance
 pandas
 numpy<2
 matplotlib
+pillow
+mplfinance

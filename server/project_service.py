@@ -1,10 +1,12 @@
 # project_service.py
 from firebase_admin import firestore
 import datetime
+from DataCaching import DataCaching
 
 class ProjectService:
     def __init__(self, db):
         self.db = db
+        self.dataCache = DataCaching(self.db)
 
     def create_project(self, data):
         name = data.get('name')

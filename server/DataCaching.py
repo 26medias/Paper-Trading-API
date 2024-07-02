@@ -82,10 +82,18 @@ class DataCaching:
                                 else:
                                     new_data.index = new_data.index.tz_localize(None)
 
+                                # Combine existing data and new data
                                 combined_data = pd.concat([existing_data, new_data]).drop_duplicates().sort_index()
+
+                                # Remove duplicated timestamps keeping the last occurrence
+                                combined_data = combined_data[~combined_data.index.duplicated(keep='last')]
+
+                                # Calculate market cycle
                                 combined_data = self._calculate_market_cycle(combined_data)
+
                                 if timeframe == '1D':
                                     self._generate_and_save_5d_data(ticker, combined_data)
+
                                 combined_data = self._trim_data(combined_data)
                                 self._save_to_firestore(ticker, timeframe, combined_data)
                             else:
@@ -101,6 +109,8 @@ class DataCaching:
                     print(f"No data found for {ticker} on {timeframe} timeframe")
         except Exception as e:
             print(f"Error updating data for {self.tickers} on {timeframe} timeframe: {e}")
+
+
 
     def _generate_combined_market_cycle_data(self):
         for ticker in self.tickers:

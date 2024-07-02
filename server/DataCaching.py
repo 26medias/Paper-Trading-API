@@ -231,7 +231,7 @@ class DataCaching:
             print(f"No data available for {ticker} to generate chart.")
 
 
-    def tickerStatus(self, ticker):
+    def tickerStatus(self, ticker, project=None):
         def get_status(ticker, timeframe, mc_field):
             data = self.get_data(ticker, timeframe, trim=False)
             if data is None or len(data) < 3:
@@ -266,6 +266,7 @@ class DataCaching:
 
         latest_timestamp = doc.to_dict().get('latest_timestamp', None)
         last_10 = data[-10:]
+        last = data[-1]
 
         status = {
             "1min": get_status(ticker, "1min", 'marketCycle'),
@@ -274,9 +275,22 @@ class DataCaching:
             "5d": get_status(ticker, "5D", 'marketCycle')
         }
 
-        return {
+        result = {
             "ticker": ticker,
             "latest_timestamp": latest_timestamp,
             "last_10": last_10,
             "status": status
         }
+
+        if project:
+            position_doc_id = f"{project}-{ticker}"
+            position_doc_ref = self.db.collection("trade_positions").document(position_doc_id)
+            position_doc = position_doc_ref.get()
+            if position_doc.exists:
+                position = position_doc.to_dict()
+                latest_close = last["Close"]
+                gains = ((latest_close - position["avg_cost"]) / position["avg_cost"]) * 100 if latest_close else None
+                position["gains"] = gains
+                result["position"] = position
+
+        return result

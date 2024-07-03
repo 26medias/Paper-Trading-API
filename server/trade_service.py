@@ -258,6 +258,7 @@ class TradeService:
         return {'pagination': pagination, 'data': data}, 200
 
     def manage_watchlist(self, data):
+        print(data)
         project = data.get('project')
         ticker = data.get('ticker')
         action = data.get('action')
@@ -272,6 +273,11 @@ class TradeService:
             watchlist = watchlist_doc.to_dict().get('tickers', [])
         else:
             watchlist = []
+
+        print("watchlist?: ", watchlist)
+
+        if action == 'list':
+            return {'watchlist': watchlist}, 200
 
         if action == 'add':
             if not ticker:
@@ -289,6 +295,8 @@ class TradeService:
             return {'error': 'Invalid "action" parameter'}, 400
 
         watchlist_ref.set({'tickers': watchlist})
+
+        print("watchlist: ", watchlist)
 
         return {'watchlist': watchlist}, 200
 

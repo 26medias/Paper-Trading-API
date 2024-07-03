@@ -1,0 +1,60 @@
+.ticker-status {
+    width: 200px;
+    border: 1px solid rgba(0,0,0,0.3);
+    border-radius: 5px;
+    padding: 5px;
+    display: grid;
+    gap: 0 10px;
+    grid-template-columns: 1fr 1fr;
+    grid-template-areas: 
+        'chart chart'
+        'ticker price'
+        'status status';
+    
+    &__chart {
+        grid-area: chart;
+        img {
+            border-radius: 5px;
+            width: 100%;
+        }
+    }
+    &__ticker {
+        grid-area: ticker;
+        text-align: right;
+        font-weight: 600;
+    }
+    &__price {
+        grid-area: price;
+        text-align: left;
+    }
+    &__status {
+        grid-area: status;
+        display: grid;
+        grid-template-columns: 1fr;
+        img {
+            height: 100%;
+        }
+        &__data {
+            width: 100%;
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            background-color: rgb(38, 92, 153);
+            & > div {
+                opacity: 0.7;
+                & > div {
+                    padding: 2px;
+                    font-size: 10px;
+                    color: #ffffff;
+                    &:last-child {
+                        font-weight: 600;
+                    }
+                }
+                &:first-child {
+                    opacity: 1;
+                    border-right: 1px solid #ffffff;
+                    background-color: rgb(38, 92, 153);
+                }
+            }
+        }
+    }
+}

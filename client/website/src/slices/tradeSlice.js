@@ -50,6 +50,36 @@ export const tickerStatus = createAsyncThunk('trade/status', async (ticker, { re
         return rejectWithValue(error.response ? error.response.data : error.message);
     }
 });
+export const doBuy = createAsyncThunk('trade/buy', async ([ticker, qty, price], { rejectWithValue }) => {
+    try {
+        const response = await axios.post(`${API_URL}/trade/buy`, {
+            project: getProject(),
+            ticker,
+            qty,
+            price
+        }, {
+            headers: {},
+        });
+        return response.data;
+    } catch (error) {
+        return rejectWithValue(error.response ? error.response.data : error.message);
+    }
+});
+export const doSell = createAsyncThunk('trade/sell', async ([ticker, qty, price], { rejectWithValue }) => {
+    try {
+        const response = await axios.post(`${API_URL}/trade/sell`, {
+            project: getProject(),
+            ticker,
+            qty,
+            price
+        }, {
+            headers: {},
+        });
+        return response.data;
+    } catch (error) {
+        return rejectWithValue(error.response ? error.response.data : error.message);
+    }
+});
 
 const tradeSlice = createSlice({
     name: 'trade',

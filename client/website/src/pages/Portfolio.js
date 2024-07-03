@@ -1,5 +1,5 @@
 // src/pages/Portfolio.js
-import React from 'react';
+import React, { useState } from 'react';
 import { Layout, Button, Row, Col, Typography, Card } from 'antd';
 import { useSelector } from 'react-redux';
 import { useNavigate } from 'react-router-dom';
@@ -15,12 +15,26 @@ const { Header, Content, Footer } = Layout;
 
 const PortfolioPage = () => {
     const navigate = useNavigate();
+    const [isLoading, setIsLoading] = useState(false)
+
+
+    const refresh = () => {
+        setIsLoading(true);
+        setTimeout(() => setIsLoading(false), 750);
+    }
 
     return (
         <MainLayout>
             <Content className="home-content">
-                <Portfolio />
-                <Market />
+                <Button onClick={refresh}>Refresh</Button>
+                {isLoading && <div>Loading...</div>}
+                {!isLoading && (
+                    <>
+                        <Portfolio />
+                        <Market />
+                    </>
+                )}
+                
             </Content>
         </MainLayout>
     );

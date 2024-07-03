@@ -33,11 +33,8 @@ const Market = ({ data }) => {
 
     return (
         <div className='market'>
-            <div className='market__options'>
-                <Button onClick={refresh}>Refresh</Button>
-            </div>
             <div className='market__data'>
-                {isLoading && <div>Loading...</div>}
+                {isLoading && <div className='market__loading'>Loading...</div>}
                 {!isLoading && watchlist.map((ticker) => (
                     <TickerStatus ticker={ticker} key={ticker} />
                 ))}

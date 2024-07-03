@@ -5,7 +5,7 @@ import { useNavigate } from 'react-router-dom';
 import { LockFilled } from '@ant-design/icons';
 
 import './ticker-status.less';
-import { tickerStatus } from '../../slices/tradeSlice';
+import { tickerStatus, doBuy, doSell } from '../../slices/tradeSlice';
 import { useDispatch, useSelector } from 'react-redux';
 
 const TickerStatus = ({ ticker }) => {
@@ -16,12 +16,16 @@ const TickerStatus = ({ ticker }) => {
     const API_URL = process.env.REACT_APP_API_ENDPOINT;
 
     const [status, setStatus] = useState();
+    const [isLoading, setIsLoading] = useState(false)
+    const [qty, setQty] = useState(10);
 
     const timeframes = ['1m', '1h', '1d', '5d']
 
     const refresh = async () => {
+        setIsLoading(true);
         const response = await dispatch(tickerStatus(ticker)).unwrap();
         setStatus(response);
+        setIsLoading(false);
     }
 
     useEffect(() => {
@@ -55,11 +59,42 @@ const TickerStatus = ({ ticker }) => {
         return `rgb(${interpolatedColor[0]}, ${interpolatedColor[1]}, ${interpolatedColor[2]})`;
     }
 
+    const buy = async () => {
+        if (!status) return;
+        setIsLoading(true);
+        const data = status.last_10[status.last_10.length-1];
+        const response = await dispatch(doBuy([ticker, qty, data.Close])).unwrap();
+        await refresh();
+        setIsLoading(false);
+        console.log(response)
+    }
+    const sell = async () => {
+        if (!status) return;
+        setIsLoading(true);
+        const data = status.last_10[status.last_10.length-1];
+        const response = await dispatch(doSell([ticker, qty, data.Close])).unwrap();
+        await refresh();
+        setIsLoading(false);
+        console.log(response)
+    }
+
+
     const cmap_mc = [[49, 206, 83], [38, 92, 153], [235, 51, 51]];
     const cmap_change = [[49, 206, 83], [38, 92, 153], [235, 51, 51]];
 
     const range_mc = [0, 100];
     const range_change = [-20, 20];
+
+    const handleChange = (e) => {
+        // Get the new value from the input
+        const newValue = e.target.value;
+    
+        // Set the new value to the state
+        setQty(newValue);
+    
+        // Log the new value (for demonstration purposes)
+        console.log(newValue);
+      };
 
     const renderBox = () => {
         if (!status) return;
@@ -115,20 +150,25 @@ const TickerStatus = ({ ticker }) => {
                         })}
                     </div>
                 </div>
+                <div className='ticker-status__actions'>
+                    <Button size='small' type='primary' onClick={buy}>BUY</Button>
+                    <input type='number' value={qty} onChange={handleChange} />
+                    <Button size='small' type='primary' danger onClick={sell}>SELL</Button>
+                </div>
             </div>
         )
     }
 
     const renderLoading = () => (
-        <div className='ticker-status__loading'>
+        <div className='ticker-status'>
             Loading {ticker}...
         </div>
     )
 
     return (
         <>
-            {!status && renderLoading()}
-            {status && renderBox()}
+            {(!status || isLoading) && renderLoading()}
+            {!isLoading && status && renderBox()}
         </>
     );
 };

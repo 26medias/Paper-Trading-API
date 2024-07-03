@@ -19,11 +19,12 @@ const TickerStatus = ({ ticker }) => {
     const [isLoading, setIsLoading] = useState(false)
     const [qty, setQty] = useState(10);
 
-    const timeframes = ['1m', '1h', '1d', '5d']
+    const timeframes = ['1min', '1h', '1d', '5d']
 
     const refresh = async () => {
         setIsLoading(true);
         const response = await dispatch(tickerStatus(ticker)).unwrap();
+        console.log({response})
         setStatus(response);
         setIsLoading(false);
     }
@@ -115,26 +116,30 @@ const TickerStatus = ({ ticker }) => {
                 <div className='ticker-status__status'>
                     <div className='ticker-status__status__data'>
                         {timeframes.map((timeframe) => {
-                            let value = data[`marketCycle_${timeframe}`] ? parseFloat(data[`marketCycle_${timeframe}`]).toFixed(2) : '-';
+                            let value = status.status[timeframe].value ? status.status[timeframe].value.toFixed(2) : '-';
+                            let value1 = data1[`marketCycle_${timeframe}`] ? parseFloat(data1[`marketCycle_${timeframe}`]).toFixed(2) : '-';
+                            let value2 = data2[`marketCycle_${timeframe}`] ? parseFloat(data2[`marketCycle_${timeframe}`]).toFixed(2) : '-';
+
+                            /*let value = data[`marketCycle_${timeframe}`] ? parseFloat(data[`marketCycle_${timeframe}`]).toFixed(2) : '-';
                             let value1 = data1[`marketCycle_${timeframe}`] ? parseFloat(data1[`marketCycle_${timeframe}`]).toFixed(2) : '-';
                             let value2 = data2[`marketCycle_${timeframe}`] ? parseFloat(data2[`marketCycle_${timeframe}`]).toFixed(2) : '-';
                             let change1 = data[`marketCycle_${timeframe}`] && data1[`marketCycle_${timeframe}`] ? (data1[`marketCycle_${timeframe}`]-data[`marketCycle_${timeframe}`]).toFixed(2) : '-';
-                            let change2 = data1[`marketCycle_${timeframe}`] && data2[`marketCycle_${timeframe}`] ? (data2[`marketCycle_${timeframe}`]-data1[`marketCycle_${timeframe}`]).toFixed(2) : '-';
+                            let change2 = data1[`marketCycle_${timeframe}`] && data2[`marketCycle_${timeframe}`] ? (data2[`marketCycle_${timeframe}`]-data1[`marketCycle_${timeframe}`]).toFixed(2) : '-';*/
 
-                            const mc_color = data[`marketCycle_${timeframe}`] ? colorFromGradient({
-                                value: parseFloat(value),
+                            const mc_color = status.status[timeframe].value ? colorFromGradient({
+                                value: status.status[timeframe].value,
                                 range: range_mc,
                                 cmap: cmap_mc
                               }) : 'rgba(0,0,0,0.1)';
 
-                              const change_color1 = data[`marketCycle_${timeframe}`] && data1[`marketCycle_${timeframe}`] ? colorFromGradient({
-                                  value: parseFloat(change1),
+                              const change_color1 = status.status[timeframe].delta1 ? colorFromGradient({
+                                  value: status.status[timeframe].delta1,
                                   range: range_change,
                                   cmap: cmap_change
                                 }) : 'rgba(0,0,0,0.1)';
 
-                                const change_color2 = data1[`marketCycle_${timeframe}`] && data2[`marketCycle_${timeframe}`] ? colorFromGradient({
-                                    value: parseFloat(change2),
+                                const change_color2 = status.status[timeframe].delta2 ? colorFromGradient({
+                                    value: status.status[timeframe].delta2,
                                     range: range_change,
                                     cmap: cmap_change
                                   }) : 'rgba(0,0,0,0.1)';

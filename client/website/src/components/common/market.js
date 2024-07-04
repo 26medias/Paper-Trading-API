@@ -22,9 +22,12 @@ const Market = ({ data }) => {
     const [isLoading, setIsLoading] = useState(false);
     const [settings, setSettings] = useState(null);
 
-    const watchlist = useSelector(getWatchlist);
     const account = useSelector(getAccount);
     const portfolio = useSelector(getPortfolio);
+    const watchlist = useSelector(getWatchlist);
+
+    const [cryptoWatchlist, setCryptoWatchlist] = useState([]);
+    const [stockWatchlist, setStockWatchlist] = useState([]);
 
     const refresh = async () => {
         setIsLoading(true);
@@ -74,6 +77,8 @@ const Market = ({ data }) => {
     useEffect(() => {
         if (watchlist) {
             refreshTickers();
+            setCryptoWatchlist(watchlist.filter(item => item.indexOf('-')!==-1))
+            setStockWatchlist(watchlist.filter(item => item.indexOf('-')==-1))
         }
     }, [watchlist]);
 
@@ -120,11 +125,16 @@ const Market = ({ data }) => {
             </div>
             <div className='market__content'>
                 {watchlist && (
-                    <div className='market__data'>
-                        {watchlist.map((ticker) => (
-                            <TickerStatus ticker={ticker} key={ticker} />
-                        ))}
-                    </div>
+                    <>
+                        <div className='market__data'>
+                            {cryptoWatchlist.map((ticker) => (
+                                <TickerStatus ticker={ticker} key={ticker} isCrypto />
+                            ))}
+                            {stockWatchlist.map((ticker) => (
+                                <TickerStatus ticker={ticker} key={ticker} />
+                            ))}
+                        </div>
+                    </>
                 )}
 
                 <Portfolio />

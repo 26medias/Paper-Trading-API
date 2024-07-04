@@ -6,6 +6,8 @@
     display: grid;
     gap: 0 10px;
     grid-template-columns: 1fr 1fr;
+    background-color: rgb(38, 92, 153);
+
     &--status {
         grid-template-areas: 
             'ticker price'
@@ -18,7 +20,11 @@
             'ticker price'
             'chart chart';
     }
-    background-color: rgb(38, 92, 153);
+    &--crypto {
+        border: 1px solid #ffffff;
+    }
+
+    
     
     &__chart {
         grid-area: chart;

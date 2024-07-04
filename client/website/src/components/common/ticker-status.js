@@ -7,7 +7,7 @@ import './ticker-status.less';
 import { fetchPortfolio, doBuy, doSell, getStatus } from '../../slices/tradeSlice';
 import { useDispatch, useSelector } from 'react-redux';
 
-const TickerStatus = ({ ticker }) => {
+const TickerStatus = ({ ticker, isCrypto }) => {
     const dispatch = useDispatch();
     const navigate = useNavigate();
     const [form] = Form.useForm();
@@ -131,13 +131,15 @@ const TickerStatus = ({ ticker }) => {
         console.log(newValue);
     };
 
+    const extraClass = isCrypto ? 'ticker-status--crypto' : '';
+
     const renderBox = () => {
         if (!status) return;
         const data = status.last_10[status.last_10.length-1];
         const data1 = status.last_10[status.last_10.length-2];
         const data2 = status.last_10[status.last_10.length-3];
         return (
-            <div className='ticker-status ticker-status--status'>
+            <div className={`ticker-status ticker-status--status ${extraClass}`}>
                 <div className='ticker-status__ticker' onClick={() => setDisplayChart(!displayChart)}>
                     {status.ticker}
                 </div>
@@ -194,7 +196,7 @@ const TickerStatus = ({ ticker }) => {
         const data1 = status.last_10[status.last_10.length-2];
         const data2 = status.last_10[status.last_10.length-3];
         return (
-            <div className='ticker-status ticker-status--chart'>
+            <div className={`ticker-status ticker-status--chart ${extraClass}`}>
                 <div className='ticker-status__ticker' onClick={() => setDisplayChart(!displayChart)}>
                     {status.ticker}
                 </div>

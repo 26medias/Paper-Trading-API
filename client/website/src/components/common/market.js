@@ -1,45 +1,142 @@
-// src/components/common/ProjectSelector.js
+// src/components/common/Market.js
 import React, { useState, useEffect } from 'react';
-import { Form, Input, Button } from 'antd';
+import { Form, message } from 'antd';
 import { useNavigate } from 'react-router-dom';
-import { LockFilled } from '@ant-design/icons';
+import { useSelector, useDispatch } from 'react-redux';
+import TickerStatus from './ticker-status';
+import { fetchWatchlist, fetchAccount, getAccount, getWatchlist, tickerStatus, fetchPortfolio, getPortfolio } from '../../slices/tradeSlice';
+import { db } from '../../firebaseConfig';
+import { doc, onSnapshot } from 'firebase/firestore';
 
 import './market.less';
-import { fetchWatchlist } from '../../slices/tradeSlice';
-import { useDispatch, useSelector } from 'react-redux';
-import TickerStatus from './ticker-status';
+import Account from './account';
+import Portfolio from './portfolio';
 
 const Market = ({ data }) => {
     const dispatch = useDispatch();
     const navigate = useNavigate();
     const [form] = Form.useForm();
 
-    const [isLoading, setIsLoading] = useState(false)
-    const [watchlist, setWatchlist] = useState([])
-    //const portfolio = useSelector(fetchPortfolio);
+    const [messageApi, contextHolder] = message.useMessage();
+    const [error, setError] = useState(null);
+    const [isLoading, setIsLoading] = useState(false);
+    const [settings, setSettings] = useState(null);
+
+    const watchlist = useSelector(getWatchlist);
+    const account = useSelector(getAccount);
+    const portfolio = useSelector(getPortfolio);
 
     const refresh = async () => {
         setIsLoading(true);
-        const response = await dispatch(fetchWatchlist()).unwrap();
-        setWatchlist(response.watchlist);
-        setIsLoading(false);
+        try {
+            await dispatch(fetchWatchlist()).unwrap();
+            setIsLoading(false);
+        } catch (error) {
+            console.log(error.error)
+            setError(error.error.toString());
+            setIsLoading(false);
+        }
+    }
+
+    const refreshTickers = async () => {
+        if (!watchlist) return;
+        watchlist.forEach(ticker => {
+            try {
+                dispatch(tickerStatus(ticker)).unwrap()
+            } catch (error) {
+                console.log(error.error)
+                setError(error.error.toString());
+            }
+        });
+    }
+    const refreshPositions = async () => {
+        try {
+            await dispatch(fetchPortfolio())
+        } catch (error) {
+            console.log(error.error)
+            setError(error.error.toString());
+        }
+    }
+    const refreshAccount = async () => {
+        try {
+            await dispatch(fetchAccount())
+        } catch (error) {
+            console.log(error.error)
+            setError(error.error.toString());
+        }
     }
 
     useEffect(() => {
-        refresh()
-    }, [dispatch]);
+        refresh();
+        refreshPositions();
+    }, []);
+
+    useEffect(() => {
+        if (watchlist) {
+            refreshTickers();
+        }
+    }, [watchlist]);
+
+    useEffect(() => {
+        refreshAccount();
+    }, [portfolio]);
 
 
+    useEffect(() => {
+        if (settings) {
+            refreshTickers();
+        }
+    }, [settings]);
+
+    useEffect(() => {
+        if (error) {
+            messageApi.error(error);
+            setError(null); // Reset error after showing the message
+        }
+    }, [error, messageApi]);
+
+
+    useEffect(() => {
+        const settingsRef = doc(db, 'paper_settings', 'settings');
+        const unsubscribe = onSnapshot(settingsRef, (docSnapshot) => {
+            if (docSnapshot.exists()) {
+                const data = docSnapshot.data();
+                console.log("settings", {data});
+                setSettings(data);
+            } else {
+                console.log("No such document!");
+            }
+        }, (error) => {
+            console.log("Error getting document:", error);
+        });
+
+        return () => unsubscribe();
+    }, []);
 
     return (
         <div className='market'>
-            <div className='market__data'>
-                {isLoading && <div className='market__loading'>Loading...</div>}
-                {!isLoading && watchlist.map((ticker) => (
-                    <TickerStatus ticker={ticker} key={ticker} />
-                ))}
+            <div className='market__header'>
+                <Account settings={settings} />
             </div>
-            
+            <div className='market__content'>
+                {watchlist && (
+                    <div className='market__data'>
+                        {watchlist.map((ticker) => (
+                            <TickerStatus ticker={ticker} key={ticker} />
+                        ))}
+                    </div>
+                )}
+
+                <Portfolio />
+
+                {settings && (
+                    <div className='market__settings'>
+                        <p>Refreshed {new Date(settings.refreshed).toTimeString()}</p>
+                    </div>
+                )}
+
+                {(isLoading || !watchlist || !account || !portfolio) && <div className='market__loading'>Loading...</div>}
+            </div>
         </div>
     );
 };

@@ -5,7 +5,7 @@ import { useNavigate } from 'react-router-dom';
 import { LockFilled } from '@ant-design/icons';
 
 import './portfolio.less';
-import { fetchPortfolio } from '../../slices/tradeSlice';
+import { getPortfolio } from '../../slices/tradeSlice';
 import { useDispatch, useSelector } from 'react-redux';
 
 const Portfolio = ({ data }) => {
@@ -13,20 +13,7 @@ const Portfolio = ({ data }) => {
     const navigate = useNavigate();
     const [form] = Form.useForm();
 
-    const [positions, setPositions] = useState([])
-    //const portfolio = useSelector(fetchPortfolio);
-
-    const refresh = async () => {
-        const response = await dispatch(fetchPortfolio()).unwrap();
-        setPositions(response.positions);
-        console.log({response})
-    }
-
-    useEffect(() => {
-        refresh()
-    }, [dispatch]);
-
-
+    const positions = useSelector(getPortfolio);
 
     return (
         <div className='portfolio'>
@@ -42,7 +29,7 @@ const Portfolio = ({ data }) => {
                     </tr>
                 </thead>
                 <tbody>
-                    {positions && positions.map((item) => (
+                    {positions && positions.positions.map((item) => (
                         <tr key={`row-${item.ticker}`}>
                             <td>{item.ticker}</td>
                             <td>{item.qty}</td>

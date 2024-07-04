@@ -1,11 +1,10 @@
 // src/components/common/ProjectSelector.js
 import React, { useState, useEffect } from 'react';
-import { Form, Input, Button } from 'antd';
+import { Form, message, Button } from 'antd';
 import { useNavigate } from 'react-router-dom';
-import { LockFilled } from '@ant-design/icons';
 
 import './ticker-status.less';
-import { tickerStatus, doBuy, doSell } from '../../slices/tradeSlice';
+import { fetchPortfolio, doBuy, doSell, getStatus } from '../../slices/tradeSlice';
 import { useDispatch, useSelector } from 'react-redux';
 
 const TickerStatus = ({ ticker }) => {
@@ -13,34 +12,57 @@ const TickerStatus = ({ ticker }) => {
     const navigate = useNavigate();
     const [form] = Form.useForm();
 
+    const [messageApi, contextHolder] = message.useMessage();
+    const [error, setError] = useState(null);
+    const [isLoading, setIsLoading] = useState(false)
+    const [rnd, setRnd] = useState(0)
+    const [displayChart, setDisplayChart] = useState(false)
+    const [qty, setQty] = useState(10);
+
     const API_URL = process.env.REACT_APP_API_ENDPOINT;
 
-    const [status, setStatus] = useState();
-    const [isLoading, setIsLoading] = useState(false)
-    const [qty, setQty] = useState(10);
+    const status = useSelector(state => getStatus(state, ticker));
 
     const timeframes = ['1min', '1h', '1d', '5d']
 
-    const refresh = async () => {
-        setIsLoading(true);
-        const response = await dispatch(tickerStatus(ticker)).unwrap();
-        console.log({response})
-        setStatus(response);
-        setIsLoading(false);
-    }
+
+
 
     useEffect(() => {
-        refresh()
-    }, [dispatch]);
+        if (error) {
+            messageApi.error(error);
+            setError(null); // Reset error after showing the message
+        }
+    }, [error, messageApi]);
 
-    function colorFromGradient({value, range, cmap}) {
+
+    useEffect(() => {
+        if (status) {
+            setRnd(Math.random());
+        }
+    }, [status]);
+
+
+
+    const refresh = async () => {
+        try {
+            await dispatch(fetchPortfolio())
+        } catch (e) {}
+    }
+
+    
+
+    function colorFromGradient({ value, range, cmap }) {
         const [min, max] = range;
         const numColors = cmap.length;
       
         if (numColors < 2) throw new Error('Color map must have at least two colors.');
       
+        // Clamp the value to be within the range
+        const clampedValue = Math.max(min, Math.min(value, max));
+      
         // Normalize the value to a range of 0 to 1
-        const normalizedValue = (value - min) / (max - min);
+        const normalizedValue = (clampedValue - min) / (max - min);
       
         // Calculate the position in the color map
         const scaledValue = normalizedValue * (numColors - 1);
@@ -52,9 +74,9 @@ const TickerStatus = ({ ticker }) => {
         const color2 = cmap[colorIndex + 1] || color1; // Handle the edge case
       
         const interpolatedColor = [
-            Math.round(color1[0] + (color2[0] - color1[0]) * t),
-            Math.round(color1[1] + (color2[1] - color1[1]) * t),
-            Math.round(color1[2] + (color2[2] - color1[2]) * t)
+          Math.round(color1[0] + (color2[0] - color1[0]) * t),
+          Math.round(color1[1] + (color2[1] - color1[1]) * t),
+          Math.round(color1[2] + (color2[2] - color1[2]) * t),
         ];
       
         return `rgb(${interpolatedColor[0]}, ${interpolatedColor[1]}, ${interpolatedColor[2]})`;
@@ -64,27 +86,39 @@ const TickerStatus = ({ ticker }) => {
         if (!status) return;
         setIsLoading(true);
         const data = status.last_10[status.last_10.length-1];
-        const response = await dispatch(doBuy([ticker, qty, data.Close])).unwrap();
-        await refresh();
-        setIsLoading(false);
-        console.log(response)
+        try {
+            const response = await dispatch(doBuy([ticker, qty, data.Close])).unwrap();
+            await refresh();
+            setIsLoading(false);
+            console.log(response)
+        } catch (error) {
+            console.log(error.error)
+            setError(error.error.toString());
+            setIsLoading(false);
+        }
     }
     const sell = async () => {
         if (!status) return;
         setIsLoading(true);
         const data = status.last_10[status.last_10.length-1];
-        const response = await dispatch(doSell([ticker, qty, data.Close])).unwrap();
-        await refresh();
-        setIsLoading(false);
-        console.log(response)
+        try {
+            const response = await dispatch(doSell([ticker, qty, data.Close])).unwrap();
+            await refresh();
+            setIsLoading(false);
+            console.log(response)
+        } catch (error) {
+            console.log(error.error)
+            setError(error.error.toString());
+            setIsLoading(false);
+        }
     }
 
 
     const cmap_mc = [[49, 206, 83], [38, 92, 153], [235, 51, 51]];
-    const cmap_change = [[49, 206, 83], [38, 92, 153], [235, 51, 51]];
+    const cmap_change = [[235, 51, 51], [38, 92, 153], [49, 206, 83]];
 
     const range_mc = [0, 100];
-    const range_change = [-20, 20];
+    const range_change = [-10, 10];
 
     const handleChange = (e) => {
         // Get the new value from the input
@@ -95,7 +129,7 @@ const TickerStatus = ({ ticker }) => {
     
         // Log the new value (for demonstration purposes)
         console.log(newValue);
-      };
+    };
 
     const renderBox = () => {
         if (!status) return;
@@ -103,46 +137,37 @@ const TickerStatus = ({ ticker }) => {
         const data1 = status.last_10[status.last_10.length-2];
         const data2 = status.last_10[status.last_10.length-3];
         return (
-            <div className='ticker-status'>
-                <div className='ticker-status__ticker'>
+            <div className='ticker-status ticker-status--status'>
+                <div className='ticker-status__ticker' onClick={() => setDisplayChart(!displayChart)}>
                     {status.ticker}
                 </div>
-                <div className='ticker-status__price'>
+                <div className='ticker-status__price' onClick={() => setDisplayChart(!displayChart)}>
                     ${data.Close.toFixed(3)}
                 </div>
-                <div className='ticker-status__chart'>
-                    {/*<img src={`${API_URL}/trade/img-candles?ticker=${ticker}`} />*/}
-                </div>
-                <div className='ticker-status__status'>
+                <div className='ticker-status__status' onClick={() => setDisplayChart(!displayChart)}>
                     <div className='ticker-status__status__data'>
                         {timeframes.map((timeframe) => {
                             let value = status.status[timeframe].value ? status.status[timeframe].value.toFixed(2) : '-';
-                            let value1 = data1[`marketCycle_${timeframe}`] ? parseFloat(data1[`marketCycle_${timeframe}`]).toFixed(2) : '-';
-                            let value2 = data2[`marketCycle_${timeframe}`] ? parseFloat(data2[`marketCycle_${timeframe}`]).toFixed(2) : '-';
-
-                            /*let value = data[`marketCycle_${timeframe}`] ? parseFloat(data[`marketCycle_${timeframe}`]).toFixed(2) : '-';
-                            let value1 = data1[`marketCycle_${timeframe}`] ? parseFloat(data1[`marketCycle_${timeframe}`]).toFixed(2) : '-';
-                            let value2 = data2[`marketCycle_${timeframe}`] ? parseFloat(data2[`marketCycle_${timeframe}`]).toFixed(2) : '-';
-                            let change1 = data[`marketCycle_${timeframe}`] && data1[`marketCycle_${timeframe}`] ? (data1[`marketCycle_${timeframe}`]-data[`marketCycle_${timeframe}`]).toFixed(2) : '-';
-                            let change2 = data1[`marketCycle_${timeframe}`] && data2[`marketCycle_${timeframe}`] ? (data2[`marketCycle_${timeframe}`]-data1[`marketCycle_${timeframe}`]).toFixed(2) : '-';*/
+                            let value1 = status.status[timeframe].value1 ? status.status[timeframe].value1.toFixed(2) : '-';
+                            let value2 = status.status[timeframe].value2 ? status.status[timeframe].value2.toFixed(2) : '-';
 
                             const mc_color = status.status[timeframe].value ? colorFromGradient({
                                 value: status.status[timeframe].value,
                                 range: range_mc,
                                 cmap: cmap_mc
-                              }) : 'rgba(0,0,0,0.1)';
+                            }) : 'rgba(0,0,0,0.1)';
 
-                              const change_color1 = status.status[timeframe].delta1 ? colorFromGradient({
-                                  value: status.status[timeframe].delta1,
-                                  range: range_change,
-                                  cmap: cmap_change
-                                }) : 'rgba(0,0,0,0.1)';
+                            const change_color1 = status.status[timeframe].delta0 ? colorFromGradient({
+                                value: status.status[timeframe].delta1,
+                                range: range_change,
+                                cmap: cmap_change
+                            }) : 'rgba(0,0,0,0.1)';
 
-                                const change_color2 = status.status[timeframe].delta2 ? colorFromGradient({
-                                    value: status.status[timeframe].delta2,
-                                    range: range_change,
-                                    cmap: cmap_change
-                                  }) : 'rgba(0,0,0,0.1)';
+                            const change_color2 = status.status[timeframe].delta1 ? colorFromGradient({
+                                value: status.status[timeframe].delta2,
+                                range: range_change,
+                                cmap: cmap_change
+                            }) : 'rgba(0,0,0,0.1)';
 
                             return (
                                 <div key={`${ticker}-${timeframe}`}>
@@ -163,6 +188,25 @@ const TickerStatus = ({ ticker }) => {
             </div>
         )
     }
+    const renderChart = () => {
+        if (!status) return;
+        const data = status.last_10[status.last_10.length-1];
+        const data1 = status.last_10[status.last_10.length-2];
+        const data2 = status.last_10[status.last_10.length-3];
+        return (
+            <div className='ticker-status ticker-status--chart'>
+                <div className='ticker-status__ticker' onClick={() => setDisplayChart(!displayChart)}>
+                    {status.ticker}
+                </div>
+                <div className='ticker-status__price' onClick={() => setDisplayChart(!displayChart)}>
+                    ${data.Close.toFixed(3)}
+                </div>
+                <div className='ticker-status__chart' onClick={() => setDisplayChart(!displayChart)}>
+                    <img src={`${API_URL}/trade/img-candles?ticker=${ticker}&rnd=${rnd}`} />
+                </div>
+            </div>
+        )
+    }
 
     const renderLoading = () => (
         <div className='ticker-status'>
@@ -172,8 +216,10 @@ const TickerStatus = ({ ticker }) => {
 
     return (
         <>
+            {contextHolder}
             {(!status || isLoading) && renderLoading()}
-            {!isLoading && status && renderBox()}
+            {!isLoading && status && !displayChart && renderBox()}
+            {!isLoading && status && displayChart && renderChart()}
         </>
     );
 };

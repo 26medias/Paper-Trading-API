@@ -5,6 +5,8 @@ from google.api_core.exceptions import RetryError, ServiceUnavailable
 from HelperTA import HelperTA
 from DataChart import DataChart
 import matplotlib.pyplot as plt
+import numpy as np
+import json5
 
 
 class DataCaching:
@@ -244,7 +246,12 @@ class DataCaching:
     def tickerStatus(self, ticker, project=None):
         def get_status(ticker, timeframe, mc_field):
             data = self.get_data(ticker, timeframe, trim=False)
-            if data is None or len(data) < 3:
+            data = data.replace(np.nan, None)
+            #if timeframe=='1min' and ticker == 'AMC':
+            #    print(f" = {timeframe} =")
+            #    print(f"== {ticker} ==")
+            #    print(data.tail(20))
+            if data is None or len(data) < 4:
                 return {
                     "value": None,
                     "delta0": None,
@@ -253,16 +260,23 @@ class DataCaching:
             latest = data.iloc[-1][mc_field] if mc_field in data.columns else None
             previous = data.iloc[-2][mc_field] if mc_field in data.columns else None
             previous2 = data.iloc[-3][mc_field] if mc_field in data.columns else None
-            if latest is not None and previous is not None and previous2 is not None:
+            previous3 = data.iloc[-4][mc_field] if mc_field in data.columns else None
+            if latest is not None and previous is not None and previous2 is not None and previous3 is not None:
                 delta0 = latest - previous
                 delta1 = previous - previous2
+                delta2 = previous2 - previous3
             else:
                 delta0 = None
                 delta1 = None
+                delta2 = None
             return {
                 "value": latest,
+                "value1": previous,
+                "value2": previous2,
+                "value3": previous3,
                 "delta0": delta0,
-                "delta1": delta1
+                "delta1": delta1,
+                "delta2": delta2
             }
 
         doc_ref = self.db.collection(self.table).document(f"{ticker}_mc")
@@ -276,6 +290,13 @@ class DataCaching:
 
         latest_timestamp = doc.to_dict().get('latest_timestamp', None)
         last_10 = data[-10:]
+        
+        #if ticker == 'AMC':
+        #    print(last_10)
+        #    print('-------')
+        #    print(json5.dumps(last_10).replace(': NaN', ': null'))
+            
+        last_10 = json5.loads(json5.dumps(last_10).replace(': NaN', ': null'))
         last = data[-1]
 
         status = {

@@ -1,10 +1,25 @@
 .market {
     display: grid;
-    gap: 20px;
+    grid-template-rows: auto 1fr;
+    gap: 10px;
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    z-index: 500;
+    &__header {
+
+    }
+    &__content {
+        overflow-y: auto;
+        position: relative;
+    }
     &__data {
         display: flex;
         flex-direction: row;
         flex-wrap: wrap;
+        justify-content: center;
         gap: 10px;
     }
     &__loading {
@@ -12,5 +27,14 @@
         border: 1px solid rgba(0,0,0,0.3);
         border-radius: 5px;
         padding: 5px;
+        position: absolute;
+        bottom: 0;
+        left: 0;
+        width: 100%;
+    }
+    &__settings {
+        color: #ffffff;
+        text-align: center;
+        font-size: 10px;
     }
 }

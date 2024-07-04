@@ -1,13 +1,13 @@
 // src/slices/tradeSlice.js
 import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
 import axios from 'axios';
-import { auth } from '../firebaseConfig';
 
 const API_URL = process.env.REACT_APP_API_ENDPOINT;
 
 const initialState = {
     trade: [],
-    steps: null, // To store the steps data
+    steps: null,
+    status: {}, // Changed to an object to store status by ticker
 };
 
 const getProject = () => localStorage.getItem('project');
@@ -23,7 +23,20 @@ export const fetchPortfolio = createAsyncThunk('trade/positions', async (_, { re
         return rejectWithValue(error.response ? error.response.data : error.message);
     }
 });
-export const fetchWatchlist = createAsyncThunk('trade/watchlist', async (ticker, { rejectWithValue }) => {
+
+export const fetchAccount = createAsyncThunk('trade/stats', async (_, { rejectWithValue }) => {
+    try {
+        const response = await axios.get(`${API_URL}/trade/stats`, {
+            headers: {},
+            params: { project: getProject() },
+        });
+        return response.data;
+    } catch (error) {
+        return rejectWithValue(error.response ? error.response.data : error.message);
+    }
+});
+
+export const fetchWatchlist = createAsyncThunk('trade/watchlist', async (_, { rejectWithValue }) => {
     try {
         const response = await axios.post(`${API_URL}/trade/watchlist`, {
             project: 'main', // special case, single source for data sync
@@ -31,11 +44,12 @@ export const fetchWatchlist = createAsyncThunk('trade/watchlist', async (ticker,
         }, {
             headers: {},
         });
-        return response.data;
+        return response.data.watchlist;
     } catch (error) {
         return rejectWithValue(error.response ? error.response.data : error.message);
     }
 });
+
 export const tickerStatus = createAsyncThunk('trade/status', async (ticker, { rejectWithValue }) => {
     try {
         const response = await axios.get(`${API_URL}/trade/status`, {
@@ -45,17 +59,18 @@ export const tickerStatus = createAsyncThunk('trade/status', async (ticker, { re
                 ticker: ticker
             },
         });
-        return response.data;
+        return { ticker, data: response.data };
     } catch (error) {
         return rejectWithValue(error.response ? error.response.data : error.message);
     }
 });
+
 export const doBuy = createAsyncThunk('trade/buy', async ([ticker, qty, price], { rejectWithValue }) => {
     try {
         const response = await axios.post(`${API_URL}/trade/buy`, {
             project: getProject(),
             ticker,
-            qty,
+            qty: parseFloat(qty),
             price
         }, {
             headers: {},
@@ -65,12 +80,13 @@ export const doBuy = createAsyncThunk('trade/buy', async ([ticker, qty, price], 
         return rejectWithValue(error.response ? error.response.data : error.message);
     }
 });
+
 export const doSell = createAsyncThunk('trade/sell', async ([ticker, qty, price], { rejectWithValue }) => {
     try {
         const response = await axios.post(`${API_URL}/trade/sell`, {
             project: getProject(),
             ticker,
-            qty,
+            qty: parseFloat(qty),
             price
         }, {
             headers: {},
@@ -89,25 +105,29 @@ const tradeSlice = createSlice({
             state.steps = null;
         }
     },
-    /*extraReducers: (builder) => {
+    extraReducers: (builder) => {
         builder
             .addCase(fetchPortfolio.fulfilled, (state, action) => {
                 state.portfolio = action.payload;
             })
-            .addCase(listtrade.fulfilled, (state, action) => {
-                state.trade = action.payload;
+            .addCase(fetchAccount.fulfilled, (state, action) => {
+                state.account = action.payload;
             })
-            .addCase(deleteFile.fulfilled, (state, action) => {
-                state.trade = state.trade.filter((file) => file.id !== action.payload);
+            .addCase(fetchWatchlist.fulfilled, (state, action) => {
+                state.watchlist = action.payload;
             })
-            .addCase(fetchtradeteps.fulfilled, (state, action) => {
-                state.steps = action.payload;
-            });
-    },*/
+            .addCase(tickerStatus.fulfilled, (state, action) => {
+                state.status[action.payload.ticker] = action.payload.data;
+            })
+    },
 });
 
-// Define the selector
+// Define the selectors
+export const getPortfolio = (state) => state.trade.portfolio;
+export const getAccount = (state) => state.trade.account;
+export const getWatchlist = (state) => state.trade.watchlist;
 export const getSteps = (state) => state.trade.steps;
+export const getStatus = (state, ticker) => state.trade.status[ticker];
 
 export const { clearSteps } = tradeSlice.actions;
 

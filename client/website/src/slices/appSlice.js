@@ -13,5 +13,6 @@ const appSlice = createSlice({
     },
 });
 
+export const getSettings = (state) => state.app.settings;
 export const { setSettings } = appSlice.actions;
 export default appSlice.reducer;

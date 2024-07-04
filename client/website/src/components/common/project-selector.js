@@ -19,7 +19,7 @@ const ProjectSelector = ({ data }) => {
     const onComplete = (data) => {
         console.log({data})
         localStorage.setItem('project', data.projectName);
-        navigate('/portfolio')
+        navigate('/market')
     };
     const onFail = console.log;
 

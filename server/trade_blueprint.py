@@ -2,6 +2,21 @@ from flask import Blueprint, request, jsonify, send_file
 from trade_service import TradeService
 from DataCaching import DataCaching
 from Generator import Generator
+from datetime import datetime
+import pytz
+
+
+def ts():
+    utc_now = datetime.now(pytz.utc)
+
+    # Convert to EST
+    est_tz = pytz.timezone('America/New_York')
+    est_now = utc_now.astimezone(est_tz)
+
+    # Get the timestamp in milliseconds
+    timestamp_ms = int(est_now.timestamp() * 1000)
+
+    return timestamp_ms
 
 def create_trade_blueprint(db):
     trade_bp = Blueprint('trade', __name__, url_prefix='/trade')
@@ -57,6 +72,10 @@ def create_trade_blueprint(db):
         cache = DataCaching(db=db)
         cache.setTickers(trade_service.getMainWatchlist())
         cache.init()
+        doc_ref = db.collection('paper_settings').document('settings')
+        doc_ref.set({
+            'refreshed': ts()
+        }, merge=True)
         return jsonify({"status": "ok"}), 200
 
     @trade_bp.route('/tick', methods=['GET'])
@@ -64,6 +83,10 @@ def create_trade_blueprint(db):
         cache = DataCaching(db=db)
         cache.setTickers(trade_service.getMainWatchlist())
         cache.update_data()
+        doc_ref = db.collection('paper_settings').document('settings')
+        doc_ref.set({
+            'refreshed': ts()
+        }, merge=True)
         return jsonify({"status": "ok"}), 200
 
     @trade_bp.route('/chart', methods=['GET'])

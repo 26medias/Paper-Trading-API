@@ -11,6 +11,7 @@ secret-readme.md
 node_modules/
 
 *.csv
+model/
 
 # Distribution / packaging
 .Python

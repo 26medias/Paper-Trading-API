@@ -8,17 +8,18 @@ import joblib
 import numpy as np
 
 class MarketCycleClassifier:
-    def __init__(self, data_dir=None, model_dir=None, n_estimators=100, test_size=0.2, val_size=0.1, random_state=42):
+    def __init__(self, data_dir=None, model_dir=None, n_estimators=100, test_size=0.2, val_size=0.1, random_state=42, model="up"):
         self.data_dir = data_dir
         self.model_dir = model_dir
         self.n_estimators = n_estimators
         self.test_size = test_size
         self.val_size = val_size
         self.random_state = random_state
+        self.modelName = model
         self.model = RandomForestClassifier(n_estimators=self.n_estimators, random_state=self.random_state)
         
     def load_data(self):
-        all_files = glob.glob(os.path.join(self.data_dir, "*.csv"))
+        all_files = glob.glob(os.path.join(self.data_dir, f"{self.modelName}_*.csv"))
         df_list = [pd.read_csv(file) for file in all_files]
         self.data = pd.concat(df_list, ignore_index=True)
         print(f"Data loaded. Shape: {self.data.shape}")
@@ -103,11 +104,11 @@ class MarketCycleClassifier:
         
     def save_model(self):
         os.makedirs(self.model_dir, exist_ok=True)
-        model_path = os.path.join(self.model_dir, "market_cycle_classifier.joblib")
+        model_path = os.path.join(self.model_dir, f"mc_{self.modelName}.joblib")
         joblib.dump(self.model, model_path)
         
     def load_model(self):
-        model_path = os.path.join(self.model_dir, "market_cycle_classifier.joblib")
+        model_path = os.path.join(self.model_dir, f"mc_{self.modelName}.joblib")
         self.model = joblib.load(model_path)
         
     def predict(self, input_data):

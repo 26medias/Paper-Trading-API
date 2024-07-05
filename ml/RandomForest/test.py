@@ -1,6 +1,6 @@
 from MarketCycleClassifier import MarketCycleClassifier
 
-classifier = MarketCycleClassifier(model_dir='./model')
+classifier = MarketCycleClassifier(model_dir='./model', model="down")
 
 # Load the trained model
 classifier.load_model()

@@ -6,6 +6,7 @@ import { useNavigate } from 'react-router-dom';
 import './ticker-status.less';
 import { fetchPortfolio, doBuy, doSell, getStatus } from '../../slices/tradeSlice';
 import { useDispatch, useSelector } from 'react-redux';
+import { runML } from '../../helpers/ml';
 
 const TickerStatus = ({ ticker, isCrypto }) => {
     const dispatch = useDispatch();
@@ -117,6 +118,8 @@ const TickerStatus = ({ ticker, isCrypto }) => {
 
     const runInference = () => {
         if (!status) return;
+        
+        
         let columns = ['value', 'value1', 'value2', 'value3', 'delta0', 'delta1', 'delta2'];
         let inferenceData = []
         try {
@@ -126,14 +129,16 @@ const TickerStatus = ({ ticker, isCrypto }) => {
                     inferenceData.push(value);
                 })
             })
-            console.log({inferenceData})
-            if (window.score) {
+            //const prediction = runML(inferenceData);
+            //console.log({prediction})
+            //setInference(prediction);
+            /*if (window.score) {
                 const prediction = window.score(inferenceData);
                 console.log({prediction})
                 setInference(prediction);
             } else {
                 console.error('Model not loaded');
-            }
+            }*/
         } catch (e) {
             setInference(null);
         }
@@ -213,6 +218,29 @@ const TickerStatus = ({ ticker, isCrypto }) => {
                     <input type='number' value={qty} onChange={handleChange} />
                     <Button size='small' type='primary' danger onClick={sell}>SELL</Button>
                 </div>
+                <div className='ticker-status__ml'>
+                    {inference && (
+                        <>
+                            <div>
+                                <div>
+                                    Buy
+                                </div>
+                                <div>
+                                    {inference.buy.value ? 'BUY' : '-'}
+                                </div>
+                            </div>
+                            <div>
+                                <div>
+                                    Down
+                                </div>
+                                <div>
+                                    {inference.down.value}
+                                </div>
+                            </div>
+                        </>
+                    )}
+                </div>
+                
             </div>
         )
     }

@@ -13,6 +13,7 @@
             'ticker price'
             'chart chart'
             'status status'
+            'ml ml'
             'actions actions';
     }
     &--chart {
@@ -31,6 +32,29 @@
         img {
             border-radius: 5px;
             width: 100%;
+        }
+    }
+    &__ml {
+        grid-area: ml;
+        border-top: 1px solid #ffffff;
+        & > div {
+            display: grid;
+            grid-template-columns: 30px 1fr;
+            & > div {
+                padding: 2px;
+                font-size: 10px;
+                color: #ffffff;
+                opacity: 0.7;
+                transition: linear 0.5s background-color;
+                &:first-child {
+                    font-weight: 600;
+                    opacity: 1;
+                }
+                &:last-child {
+                    font-weight: 600;
+                    opacity: 1;
+                }
+            }
         }
     }
     &__ticker {

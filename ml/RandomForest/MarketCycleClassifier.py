@@ -8,7 +8,7 @@ import joblib
 import numpy as np
 
 class MarketCycleClassifier:
-    def __init__(self, data_dir, model_dir, n_estimators=100, test_size=0.2, val_size=0.1, random_state=42):
+    def __init__(self, data_dir=None, model_dir=None, n_estimators=100, test_size=0.2, val_size=0.1, random_state=42):
         self.data_dir = data_dir
         self.model_dir = model_dir
         self.n_estimators = n_estimators
@@ -106,8 +106,14 @@ class MarketCycleClassifier:
         model_path = os.path.join(self.model_dir, "market_cycle_classifier.joblib")
         joblib.dump(self.model, model_path)
         
-    def load_model(self, model_path):
+    def load_model(self):
+        model_path = os.path.join(self.model_dir, "market_cycle_classifier.joblib")
         self.model = joblib.load(model_path)
+        
+    def predict(self, input_data):
+        input_df = pd.DataFrame([input_data])
+        prediction = self.model.predict(input_df)
+        return prediction[0]
         
     def run(self):
         self.load_data()

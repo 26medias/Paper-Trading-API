@@ -7,9 +7,29 @@ import glob
 import requests
 from bs4 import BeautifulSoup
 
+useSP500 = True
+
+# Target model
+model = "buy" # buy, sell, up, down
+
+# Op selection
 download = False
-export = False
-stats = False
+
+export = True
+if model == "buy":
+    export_threshold = 1.5
+    export_n = 60
+elif model == "sell":
+    export_threshold = -1.5
+    export_n = 60
+elif model == "up":
+    export_threshold = None
+    export_n = 3
+elif model == "down":
+    export_threshold = None
+    export_n = 3
+
+stats = True
 fix = True
 
 symbols = [
@@ -36,8 +56,14 @@ def get_sp500_tickers():
         tickers.append(ticker)
     return tickers
 
-symbols = get_sp500_tickers()
+if useSP500 == True:
+    symbols = get_sp500_tickers()
 
+
+
+#==========
+# DOWNLOAD
+#==========
 if download == True:
     print("== DOWNLOADING ==")
     cache = DataCaching(output="file", max_datapoints=100000)
@@ -46,6 +72,10 @@ if download == True:
     print("Done!")
 
 
+
+#==========
+# DATASET EXPORT
+#==========
 def calculate_deltas_and_values(df, column_prefix):
     df[f'{column_prefix}_value1'] = df[column_prefix].shift(1)
     df[f'{column_prefix}_value2'] = df[column_prefix].shift(2)
@@ -102,10 +132,20 @@ def buildTrainingData(ticker="AMC", n=120, threshold=1.0):
     df_combined.rename(columns={'index': 'Datetime'}, inplace=True)
 
     # Calculate additional fields
-    df_combined["high_10"] = df_combined["High"].shift(-n).rolling(n).max()
-    df_combined["diff_10"] = df_combined["high_10"] - df_combined["Open"]
-    df_combined["max_10"] = (df_combined["high_10"] - df_combined["Open"]) / df_combined["Open"] * 100
-    df_combined["label"] = df_combined["max_10"] > threshold
+    if model == "buy":
+        df_combined["high_10"] = df_combined["High"].shift(-n).rolling(n).max()
+        df_combined["diff_10"] = df_combined["high_10"] - df_combined["Open"]
+        df_combined["max_10"] = (df_combined["high_10"] - df_combined["Open"]) / df_combined["Open"] * 100
+        df_combined["label"] = df_combined["max_10"] >= threshold
+    elif model == "sell":
+        df_combined["low_10"] = df_combined["Low"].shift(-n).rolling(n).max()
+        df_combined["diff_10"] = df_combined["low_10"] - df_combined["Open"]
+        df_combined["min_10"] = (df_combined["low_10"] - df_combined["Open"]) / df_combined["Open"] * 100
+        df_combined["label"] = df_combined["min_10"] <= threshold
+    elif model == "up":
+        df_combined["label"] = df_combined["Close"] < df_combined["Close"].shift(-n)
+    elif model == "down":
+        df_combined["label"] = df_combined["Close"] > df_combined["Close"].shift(-n)
 
     # Drop NaN values
     df_combined = df_combined.dropna()
@@ -127,7 +167,7 @@ def buildTrainingData(ticker="AMC", n=120, threshold=1.0):
         percentage = total_over_threshold / len(df_combined) * 100
         print(f"max_10 >= 1.0: {percentage:.2f}% ({total_over_threshold}/{len(df_combined)})")
         if total_over_threshold > 0:
-            df_combined.to_csv(f"./data/data_{ticker}.csv")
+            df_combined.to_csv(f"../data/{model}_{ticker}.csv")
     else:
         print("No data left")
 
@@ -140,15 +180,20 @@ if export == True:
     for symbol in symbols:
         print(f"\n\n== {symbol} ==")
         try:
-            df_training = buildTrainingData(symbol, n=60, threshold=1.5)
+            df_training = buildTrainingData(symbol, n=export_n, threshold=export_threshold)
         except:
             print("Error :(")
     print("Done!")
 
+
+
+#==========
+# File Stats
+#==========
 if stats == True:
     print("== STATS ==")
     # Get a list of files matching the pattern 'data_*.csv'
-    files = glob.glob('./data/data_*.csv')
+    files = glob.glob(f'../data/{model}_*.csv')
 
     # Initialize counters
     total_lines = 0
@@ -175,9 +220,14 @@ if stats == True:
     # Print the total statistics
     print(f"Total: {total_true_labels}/{total_lines}")
 
+
+
+#==========
+# FIX THE DATASETS (remove the index)
+#==========
 if fix == True:
     # Get a list of files matching the pattern 'data_*.csv'
-    files = glob.glob('./data/data_*.csv')
+    files = glob.glob(f'../data/{model}_*.csv')
 
     # Loop through each file
     for file in files:

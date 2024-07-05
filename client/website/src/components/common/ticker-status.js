@@ -18,6 +18,7 @@ const TickerStatus = ({ ticker, isCrypto }) => {
     const [rnd, setRnd] = useState(0)
     const [displayChart, setDisplayChart] = useState(false)
     const [qty, setQty] = useState(10);
+    const [inference, setInference] = useState(null);
 
     const API_URL = process.env.REACT_APP_API_ENDPOINT;
 
@@ -39,6 +40,7 @@ const TickerStatus = ({ ticker, isCrypto }) => {
     useEffect(() => {
         if (status) {
             setRnd(Math.random());
+            runInference();
         }
     }, [status]);
 
@@ -112,6 +114,30 @@ const TickerStatus = ({ ticker, isCrypto }) => {
             setIsLoading(false);
         }
     }
+
+    const runInference = () => {
+        if (!status) return;
+        let columns = ['value', 'value1', 'value2', 'value3', 'delta0', 'delta1', 'delta2'];
+        let inferenceData = []
+        try {
+            timeframes.forEach(timeframe => {
+                columns.forEach(column => {
+                    const value = status.status[timeframe][column]
+                    inferenceData.push(value);
+                })
+            })
+            console.log({inferenceData})
+            if (window.score) {
+                const prediction = window.score(inferenceData);
+                console.log({prediction})
+                setInference(prediction);
+            } else {
+                console.error('Model not loaded');
+            }
+        } catch (e) {
+            setInference(null);
+        }
+    };
 
 
     const cmap_mc = [[49, 206, 83], [38, 92, 153], [235, 51, 51]];

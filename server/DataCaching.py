@@ -303,6 +303,7 @@ class DataCaching:
             return None
 
         latest_timestamp = doc.to_dict().get('latest_timestamp', None)
+        last = data[-1]
         last_10 = data[-10:]
         last_10 = json5.loads(json5.dumps(last_10).replace(': NaN', ': null'))
         last = data[-1]
@@ -320,6 +321,17 @@ class DataCaching:
             "last_10": last_10,
             "status": status
         }
+
+        # Classification
+        # "marketCycle", "marketCycle_value1", "marketCycle_value2", "marketCycle_value3",  "marketCycle_delta0", "marketCycle_delta1", "marketCycle_delta2", 
+        # "marketCycle_1h", "marketCycle_value1_1h", "marketCycle_value2_1h", "marketCycle_value3_1h", "marketCycle_delta0_1h", "marketCycle_delta1_1h", "marketCycle_delta2_1h", 
+        # "marketCycle_1d", "marketCycle_value1_1d", "marketCycle_value2_1d", "marketCycle_value3_1d", "marketCycle_delta0_1d", "marketCycle_delta1_1d", "marketCycle_delta2_1d", 
+        # "marketCycle_5d", "marketCycle_value1_5d", "marketCycle_value2_5d", "marketCycle_value3_5d", "marketCycle_delta0_5d", "marketCycle_delta1_5d", "marketCycle_delta2_5d"
+
+        #classificationData = [
+        #    status["1min"]["value"], status["1min"]["value1"], status["1min"]["value2"], status["1min"]["value3"], status["1min"]["value"], status["1min"]["value"], status["1min"]["value"], 
+        #]
+        #result["classification"] = classificationData
 
         if project:
             position_doc_id = f"{project}-{ticker}"

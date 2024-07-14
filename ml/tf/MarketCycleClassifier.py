@@ -71,7 +71,8 @@ class MarketCycleClassifierTF:
         
     def build_model(self):
         model = tf.keras.Sequential([
-            tf.keras.layers.Dense(128, activation='relu', input_shape=(self.X.shape[1],)),
+            tf.keras.layers.InputLayer(input_shape=(self.X.shape[1],)),
+            tf.keras.layers.Dense(128, activation='relu'),
             tf.keras.layers.BatchNormalization(),
             tf.keras.layers.Dropout(0.5),
             tf.keras.layers.Dense(64, activation='relu'),

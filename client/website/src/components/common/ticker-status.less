@@ -4,22 +4,23 @@
     border-radius: 5px;
     padding: 5px;
     display: grid;
-    gap: 0 10px;
-    grid-template-columns: 1fr 1fr;
+    gap: 5px;
+    grid-template-columns: 2px 1fr 1fr;
     background-color: rgb(38, 92, 153);
 
     &--status {
         grid-template-areas: 
-            'ticker price'
-            'chart chart'
-            'status status'
-            'ml ml'
-            'actions actions';
+            'ticker ticker price'
+            'chart chart chart'
+            'status status status'
+            'side ml ml'
+            'actions actions actions'
+            'date date date';
     }
     &--chart {
         grid-template-areas: 
-            'ticker price'
-            'chart chart';
+            'ticker ticker price'
+            'chart chart chart';
     }
     &--crypto {
         border: 1px solid #ffffff;
@@ -34,12 +35,26 @@
             width: 100%;
         }
     }
+    &__date {
+        grid-area: date;
+        text-align: center;
+        font-size: 10px;
+        color: #ffffff;
+    }
+    &__side {
+        grid-area: side;
+        background-color: #ff0000;
+        margin: 5px 0;
+    }
     &__ml {
         grid-area: ml;
         border-top: 1px solid #ffffff;
-        & > div {
+        &__row {
             display: grid;
-            grid-template-columns: 30px 1fr;
+            grid-template-columns: 50px 30px 1fr;
+            &--signal {
+                background-color: #4CAF50;
+            }
             & > div {
                 padding: 2px;
                 font-size: 10px;
@@ -47,12 +62,12 @@
                 opacity: 0.7;
                 transition: linear 0.5s background-color;
                 &:first-child {
-                    font-weight: 600;
                     opacity: 1;
                 }
                 &:last-child {
                     font-weight: 600;
                     opacity: 1;
+                    font-size: 9px;
                 }
             }
         }

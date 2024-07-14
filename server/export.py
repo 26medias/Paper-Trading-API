@@ -5,20 +5,24 @@ from bs4 import BeautifulSoup
 from concurrent.futures import ThreadPoolExecutor, as_completed
 
 class StockDataProcessor:
-    def __init__(self, model="up", use_sp500=True, download=False, export=True, stats=True, fix=True, batch_size=10):
+    def __init__(self, model="up", name="up", useShortData=False, use_sp500=True, download=False, export=True, stats=True, fix=True, batch_size=10, export_threshold=1.5, export_n=60):
         self.model = model
+        self.name = name
         self.use_sp500 = use_sp500
         self.download = download
         self.export = export
         self.stats = stats
         self.fix = fix
         self.batch_size = batch_size
+        self.useShortData = useShortData
         self.symbols = [
             "PLTR", "GME", "AMC", "NVDA", "ETH-USD", "BTC-USD", "DOGE-USD", "ARM", "AMSC", "GOOG"
         ]
         if use_sp500:
             self.symbols = self.get_sp500_tickers()
-        self._set_export_params()
+        self.export_threshold = export_threshold
+        self.export_n = export_n
+        #self._set_export_params()
 
     def _set_export_params(self):
         if self.model == "buy":
@@ -115,20 +119,27 @@ class StockDataProcessor:
                 df_combined["max_10"] = (df_combined["high_10"] - df_combined["Open"]) / df_combined["Open"] * 100
                 df_combined["label"] = df_combined["max_10"] >= threshold
             elif self.model == "sell":
-                df_combined["low_10"] = df_combined["Low"].shift(-n).rolling(n).max()
+                df_combined["low_10"] = df_combined["Low"].shift(-n).rolling(n).min()
                 df_combined["diff_10"] = df_combined["low_10"] - df_combined["Open"]
                 df_combined["min_10"] = (df_combined["low_10"] - df_combined["Open"]) / df_combined["Open"] * 100
                 df_combined["label"] = df_combined["min_10"] <= threshold
             elif self.model == "up":
-                df_combined["label"] = df_combined["Close"] < df_combined["Close"].shift(-n)
+                df_combined["label"] = df_combined["Close"].shift(-n).rolling(n).mean() > df_combined["Close"]
             elif self.model == "down":
-                df_combined["label"] = df_combined["Close"] > df_combined["Close"].shift(-n)
+                df_combined["label"] = df_combined["Close"].shift(-n).rolling(n).mean() < df_combined["Close"]
 
             # Drop NaN values
             df_combined = df_combined.dropna()
 
             # Select relevant columns
-            columns = ["marketCycle", "marketCycle_value1", "marketCycle_value2", "marketCycle_value3", 
+            if self.useShortData == True:
+                columns = ["marketCycle", "marketCycle_value1", "marketCycle_value2", "marketCycle_value3", 
+                       "marketCycle_1h", "marketCycle_value1_1h", "marketCycle_value2_1h", "marketCycle_value3_1h", 
+                       "marketCycle_1d", "marketCycle_value1_1d", "marketCycle_value2_1d", "marketCycle_value3_1d",
+                       "marketCycle_5d", "marketCycle_value1_5d", "marketCycle_value2_5d", "marketCycle_value3_5d", 
+                       "label"]
+            else:
+                columns = ["marketCycle", "marketCycle_value1", "marketCycle_value2", "marketCycle_value3", 
                        "marketCycle_delta0", "marketCycle_delta1", "marketCycle_delta2", "marketCycle_1h", "marketCycle_value1_1h",
                        "marketCycle_value2_1h", "marketCycle_value3_1h", "marketCycle_delta0_1h", "marketCycle_delta1_1h",
                        "marketCycle_delta2_1h", "marketCycle_1d", "marketCycle_value1_1d", "marketCycle_value2_1d", 
@@ -147,7 +158,7 @@ class StockDataProcessor:
                 percentage = total_over_threshold / len(df_combined) * 100
                 print(f"max_10 >= 1.0: {percentage:.2f}% ({total_over_threshold}/{len(df_combined)})")
                 if total_over_threshold > 0:
-                    df_combined.to_csv(f"../data/{self.model}_{ticker}.csv")
+                    df_combined.to_csv(f"../data/{self.name}_{ticker}.csv")
             else:
                 print(f"No data left for {ticker}")
 
@@ -176,7 +187,7 @@ class StockDataProcessor:
 
     def display_stats(self):
         print("== STATS ==")
-        files = glob.glob(f'../data/{self.model}_*.csv')
+        files = glob.glob(f'../data/{self.name}_*.csv')
         total_lines, total_true_labels = 0, 0
 
         for file in files:
@@ -193,7 +204,7 @@ class StockDataProcessor:
 
     def fix_datasets(self):
         print("== FIXING DATASETS ==")
-        files = glob.glob(f'../data/{self.model}_*.csv')
+        files = glob.glob(f'../data/{self.name}_*.csv')
         for file in files:
             df = pd.read_csv(file)
             df.drop(columns=df.columns[0], inplace=True)
@@ -216,5 +227,5 @@ class StockDataProcessor:
             self.fix_datasets()
 
 if __name__ == "__main__":
-    processor = StockDataProcessor(model="down", use_sp500=True, download=False, export=True, stats=True, fix=True, batch_size=5)
+    processor = StockDataProcessor(model="down", name="grid-down-5", useShortData=True, export_threshold=1.0, export_n=5, use_sp500=True, download=False, export=True, stats=True, fix=True, batch_size=2)
     processor.run()

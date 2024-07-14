@@ -77,6 +77,7 @@ const Market = ({ data }) => {
     useEffect(() => {
         if (watchlist) {
             refreshTickers();
+            refreshPositions();
             setCryptoWatchlist(watchlist.filter(item => item.indexOf('-')!==-1))
             setStockWatchlist(watchlist.filter(item => item.indexOf('-')==-1))
         }
@@ -90,6 +91,7 @@ const Market = ({ data }) => {
     useEffect(() => {
         if (settings) {
             refreshTickers();
+            refreshPositions();
         }
     }, [settings]);
 

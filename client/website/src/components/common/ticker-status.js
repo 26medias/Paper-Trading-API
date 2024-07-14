@@ -1,12 +1,15 @@
 // src/components/common/ProjectSelector.js
 import React, { useState, useEffect } from 'react';
-import { Form, message, Button } from 'antd';
+import { Form, message, Button, Progress } from 'antd';
 import { useNavigate } from 'react-router-dom';
 
 import './ticker-status.less';
 import { fetchPortfolio, doBuy, doSell, getStatus } from '../../slices/tradeSlice';
 import { useDispatch, useSelector } from 'react-redux';
 import { runML } from '../../helpers/ml';
+import { CheckCircleTwoTone } from '@ant-design/icons';
+
+import { useRef } from 'react';
 
 const TickerStatus = ({ ticker, isCrypto }) => {
     const dispatch = useDispatch();
@@ -19,13 +22,19 @@ const TickerStatus = ({ ticker, isCrypto }) => {
     const [rnd, setRnd] = useState(0)
     const [displayChart, setDisplayChart] = useState(false)
     const [qty, setQty] = useState(10);
+    const [prevInference, setPrevInference] = useState(null);
     const [inference, setInference] = useState(null);
+    const [score, setScore] = useState(0);
 
     const API_URL = process.env.REACT_APP_API_ENDPOINT;
 
     const status = useSelector(state => getStatus(state, ticker));
 
-    const timeframes = ['1min', '1h', '1d', '5d']
+    const timeframes = ['1min', '1h', '1d', '5d'];
+
+
+    const buyRef = useRef(new Audio('/buy.mp3'));
+    const sellRef = useRef(new Audio('/sell.mp3'));
 
 
 
@@ -116,29 +125,54 @@ const TickerStatus = ({ ticker, isCrypto }) => {
         }
     }
 
-    const runInference = () => {
+
+    // ML Inference
+    const runInference = async () => {
         if (!status) return;
-        
-        
         let columns = ['value', 'value1', 'value2', 'value3', 'delta0', 'delta1', 'delta2'];
         let inferenceData = []
         try {
+
+            setPrevInference(inference);
+
             timeframes.forEach(timeframe => {
                 columns.forEach(column => {
                     const value = status.status[timeframe][column]
                     inferenceData.push(value);
                 })
             })
-            //const prediction = runML(inferenceData);
-            //console.log({prediction})
-            //setInference(prediction);
-            /*if (window.score) {
-                const prediction = window.score(inferenceData);
-                console.log({prediction})
-                setInference(prediction);
-            } else {
-                console.error('Model not loaded');
-            }*/
+            const prediction = await runML(inferenceData);
+
+            // Calculate the side probability
+            let _buy = 0;
+            let _sell = 0;
+            prediction.forEach((item, n) => {
+                if (item.type=="buy") {
+                    _buy += item.value.probability;
+                    if (item.value.probability > 0.5 && (prevInference && prevInference[n].value.probability <= 0.5)) {
+                        try {
+                            buyRef.current.play();
+                        } catch(e) {
+                            console.log(e.message)
+                        }
+                        
+                    }
+                } else {
+                    _sell += item.value.probability;
+                    if (item.value.probability > 0.5 && (prevInference && prevInference[n].value.probability <= 0.5)) {
+                        try {
+                            sellRef.current.play();
+                        } catch(e) {
+                            console.log(e.message)
+                        }
+                    }
+                }
+            })
+
+            setScore(_buy-_sell)
+
+            //console.log(prediction)
+            setInference(prediction);
         } catch (e) {
             setInference(null);
         }
@@ -147,9 +181,11 @@ const TickerStatus = ({ ticker, isCrypto }) => {
 
     const cmap_mc = [[49, 206, 83], [38, 92, 153], [235, 51, 51]];
     const cmap_change = [[235, 51, 51], [38, 92, 153], [49, 206, 83]];
+    const cmap_score = [[235, 51, 51], [38, 92, 153], [49, 206, 83]];
 
     const range_mc = [0, 100];
     const range_change = [-10, 10];
+    const range_score = [-1, 1];
 
     const handleChange = (e) => {
         // Get the new value from the input
@@ -167,15 +203,21 @@ const TickerStatus = ({ ticker, isCrypto }) => {
     const renderBox = () => {
         if (!status) return;
         const data = status.last_10[status.last_10.length-1];
-        const data1 = status.last_10[status.last_10.length-2];
-        const data2 = status.last_10[status.last_10.length-3];
+
+        const change_score = score ? colorFromGradient({
+            value: score,
+            range: range_score,
+            cmap: cmap_score
+        }) : 'rgba(0,0,0,0.1)';
+
         return (
             <div className={`ticker-status ticker-status--status ${extraClass}`}>
+                <div className='ticker-status__side' style={{backgroundColor:change_score}}></div>
                 <div className='ticker-status__ticker' onClick={() => setDisplayChart(!displayChart)}>
                     {status.ticker}
                 </div>
                 <div className='ticker-status__price' onClick={() => setDisplayChart(!displayChart)}>
-                    ${data.Close.toFixed(3)}
+                    ${data.Close.toFixed(4)}
                 </div>
                 <div className='ticker-status__status' onClick={() => setDisplayChart(!displayChart)}>
                     <div className='ticker-status__status__data'>
@@ -219,26 +261,20 @@ const TickerStatus = ({ ticker, isCrypto }) => {
                     <Button size='small' type='primary' danger onClick={sell}>SELL</Button>
                 </div>
                 <div className='ticker-status__ml'>
-                    {inference && (
-                        <>
-                            <div>
-                                <div>
-                                    Buy
-                                </div>
-                                <div>
-                                    {inference.buy.value ? 'BUY' : '-'}
-                                </div>
+                    {inference && inference.map((item) => (
+                        <div key={item.name} className={'ticker-status__ml__row ' + (item.value.value ? 'ticker-status__ml__row--signal' : '')}>
+                            <div className='ticker-status__ml__row__name'>
+                                {item.name}
                             </div>
-                            <div>
-                                <div>
-                                    Down
-                                </div>
-                                <div>
-                                    {inference.down.value}
-                                </div>
+                            <div className='ticker-status__ml__row__probability'>
+                                {item.value.value ? <CheckCircleTwoTone />: 'wait'}
                             </div>
-                        </>
-                    )}
+                            <Progress percent={item.value.probability*100} size="small" showInfo={false} strokeColor={{ from: '#D81B60', to: '#43A047' }} />
+                        </div>
+                    ))}
+                </div>
+                <div className='ticker-status__date'>
+                    {new Date(data.Datetime*1000).toLocaleTimeString()}
                 </div>
                 
             </div>
@@ -247,8 +283,6 @@ const TickerStatus = ({ ticker, isCrypto }) => {
     const renderChart = () => {
         if (!status) return;
         const data = status.last_10[status.last_10.length-1];
-        const data1 = status.last_10[status.last_10.length-2];
-        const data2 = status.last_10[status.last_10.length-3];
         return (
             <div className={`ticker-status ticker-status--chart ${extraClass}`}>
                 <div className='ticker-status__ticker' onClick={() => setDisplayChart(!displayChart)}>

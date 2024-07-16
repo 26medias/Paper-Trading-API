@@ -202,6 +202,7 @@ const TickerStatus = ({ ticker, isCrypto }) => {
 
     const renderBox = () => {
         if (!status) return;
+        console.log({status})
         const data = status.last_10[status.last_10.length-1];
 
         const change_score = score ? colorFromGradient({

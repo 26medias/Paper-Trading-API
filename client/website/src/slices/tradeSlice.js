@@ -50,16 +50,30 @@ export const fetchWatchlist = createAsyncThunk('trade/watchlist', async (_, { re
     }
 });
 
-export const tickerStatus = createAsyncThunk('trade/status', async (ticker, { rejectWithValue }) => {
+export const tickerStatus = createAsyncThunk('data/status', async (ticker, { rejectWithValue }) => {
     try {
-        const response = await axios.get(`${API_URL}/trade/status`, {
+        const response = await axios.get(`${API_URL}/data/stats`, {
             headers: {},
             params: {
                 project: getProject(),
-                ticker: ticker
+                symbol: ticker
             },
         });
         return { ticker, data: response.data };
+    } catch (error) {
+        return rejectWithValue(error.response ? error.response.data : error.message);
+    }
+});
+export const getAllStats = createAsyncThunk('data/status/all', async (symbols, { rejectWithValue }) => {
+    try {
+        const response = await axios.get(`${API_URL}/data/stats`, {
+            headers: {},
+            params: {
+                project: getProject(),
+                symbols: symbols
+            },
+        });
+        return response.data;
     } catch (error) {
         return rejectWithValue(error.response ? error.response.data : error.message);
     }
@@ -118,6 +132,12 @@ const tradeSlice = createSlice({
             })
             .addCase(tickerStatus.fulfilled, (state, action) => {
                 state.status[action.payload.ticker] = action.payload.data;
+            })
+            .addCase(getAllStats.fulfilled, (state, action) => {
+                for (const symbol in action.payload) {
+                    console.log({symbol, value:action.payload[symbol]})
+                    state.status[symbol] = action.payload[symbol];
+                }
             })
     },
 });

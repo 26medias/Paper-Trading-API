@@ -4,7 +4,7 @@ import { Form, message } from 'antd';
 import { useNavigate } from 'react-router-dom';
 import { useSelector, useDispatch } from 'react-redux';
 import TickerStatus from './ticker-status';
-import { fetchWatchlist, fetchAccount, getAccount, getWatchlist, tickerStatus, fetchPortfolio, getPortfolio } from '../../slices/tradeSlice';
+import { fetchWatchlist, fetchAccount, getAccount, getWatchlist, tickerStatus, getAllStats, fetchPortfolio, getPortfolio } from '../../slices/tradeSlice';
 import { db } from '../../firebaseConfig';
 import { doc, onSnapshot } from 'firebase/firestore';
 
@@ -43,14 +43,17 @@ const Market = ({ data }) => {
 
     const refreshTickers = async () => {
         if (!watchlist) return;
-        watchlist.forEach(ticker => {
+        const stockWatchlist = watchlist.filter(ticker => ticker.indexOf('-') === -1).join(',')
+        dispatch(getAllStats(stockWatchlist))
+        /*watchlist.forEach(ticker => {
             try {
+                if (ticker.indexOf('-') !== -1) return;
                 dispatch(tickerStatus(ticker)).unwrap()
             } catch (error) {
                 console.log(error.error)
                 setError(error.error.toString());
             }
-        });
+        });*/
     }
     const refreshPositions = async () => {
         try {

@@ -17,9 +17,19 @@ class PolygonIoDataGetter(DataGetter):
         date = datetime.now() + timedelta(days=days_ago)
         return date.strftime("%Y-%m-%d")
     
-    def get(self, symbol, since):
+    def get(self, symbol, since, timeframe="1min"):
+        rules = {
+            '1min': (1, 'minute'),
+            '5min': (5, 'minute'),
+            '30min': (30, 'minute'),
+            '1h': (1, 'hour'),
+            '1d': (1, 'day'),
+            '5d': (5, 'day'),
+        }
+
         today = date.today().strftime("%Y-%m-%d")
-        url = f"https://api.polygon.io/v2/aggs/ticker/{symbol}/range/1/minute/{since}/{today}"
+        rule = rules[timeframe]
+        url = f"https://api.polygon.io/v2/aggs/ticker/{symbol}/range/{rule[0]}/{rule[1]}/{since}/{today}"
         params = {
             "adjusted": "true",
             "sort": "asc",

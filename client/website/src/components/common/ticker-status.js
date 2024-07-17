@@ -6,10 +6,9 @@ import { useNavigate } from 'react-router-dom';
 import './ticker-status.less';
 import { fetchPortfolio, doBuy, doSell, getStatus } from '../../slices/tradeSlice';
 import { useDispatch, useSelector } from 'react-redux';
-import { runML } from '../../helpers/ml';
+//import { runML } from '../../helpers/ml';
 import { CheckCircleTwoTone } from '@ant-design/icons';
 
-import { useRef } from 'react';
 import classNames from 'classnames';
 
 const TickerStatus = ({ ticker, isCrypto }) => {
@@ -34,11 +33,17 @@ const TickerStatus = ({ ticker, isCrypto }) => {
     const timeframes = ["1min", "5min", "30min", "1h", "1d", "5d"];
 
 
-    const buyRef = useRef(new Audio('/buy.mp3'));
-    const sellRef = useRef(new Audio('/sell.mp3'));
 
-
-
+    const hasSignal = () => {
+        let output = {hasSignal: false};
+        for (const i in timeframes) {
+            output[timeframes[i]] = timeframeHasSignal(timeframes[i]);
+            if (output[timeframes[i]]) {
+                output.hasSignal = true;
+            }
+        }
+        return output;
+    }
 
     useEffect(() => {
         if (error) {
@@ -52,6 +57,10 @@ const TickerStatus = ({ ticker, isCrypto }) => {
         if (status) {
             setRnd(Math.random());
             //runInference();
+            const signals = hasSignal();
+            if (signals.hasSignal) {
+                window.snd_buy.play();
+            }
         }
     }, [status]);
 
@@ -131,7 +140,7 @@ const TickerStatus = ({ ticker, isCrypto }) => {
 
 
     // ML Inference
-    const runInference = async () => {
+    /*const runInference = async () => {
         if (!status) return;
         let columns = ['value', 'value1', 'value2', 'value3', 'delta0', 'delta1', 'delta2'];
         let inferenceData = []
@@ -180,7 +189,7 @@ const TickerStatus = ({ ticker, isCrypto }) => {
         } catch (e) {
             setInference(null);
         }
-    };
+    };*/
 
 
     const cmap_mc = [[49, 206, 83], [38, 92, 153], [235, 51, 51]];
@@ -201,17 +210,7 @@ const TickerStatus = ({ ticker, isCrypto }) => {
         const data = status[timeframe];
         return data.MarketCycle >= 10 && data.MarketCycle <= 30 && data.MarketCycle_1 <= 20 && data.MarketCycle_2 <= 20 && data.delta_1 > 0 && data.delta_2 > 0
     }
-
-    const hasSignal = () => {
-        let output = {hasSignal: false};
-        for (const i in timeframes) {
-            output[timeframes[i]] = timeframeHasSignal(timeframes[i]);
-            if (output[timeframes[i]]) {
-                output.hasSignal = true;
-            }
-        }
-        return output;
-    }
+    
 
     const renderBox = () => {
         if (!status) return;

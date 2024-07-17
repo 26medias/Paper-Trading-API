@@ -7,7 +7,9 @@ function useMinuteTick() {
         const intervalId = setInterval(() => {
             const newMinute = new Date().getMinutes();
             if (newMinute !== currentMinute) {
-                setCurrentMinute(newMinute);
+                setTimeout(() => {
+                    setCurrentMinute(newMinute);
+                }, 2000)
             }
         }, 50);
 

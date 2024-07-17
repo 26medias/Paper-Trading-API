@@ -1,0 +1,8 @@
+gcloud functions deploy paper-trading \
+  --runtime python310 \
+  --trigger-http \
+  --allow-unauthenticated \
+  --memory=4GiB \
+  --entry-point create_app \
+  --timeout 540s \
+  --gen2

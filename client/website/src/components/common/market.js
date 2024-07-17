@@ -11,6 +11,7 @@ import { doc, onSnapshot } from 'firebase/firestore';
 import './market.less';
 import Account from './account';
 import Portfolio from './portfolio';
+import useMinuteTick from '../../helpers/timer';
 
 const Market = ({ data }) => {
     const dispatch = useDispatch();
@@ -29,6 +30,8 @@ const Market = ({ data }) => {
     const [cryptoWatchlist, setCryptoWatchlist] = useState([]);
     const [stockWatchlist, setStockWatchlist] = useState([]);
 
+    const currentMinute = useMinuteTick();
+
     const refresh = async () => {
         setIsLoading(true);
         try {
@@ -45,15 +48,6 @@ const Market = ({ data }) => {
         if (!watchlist) return;
         const stockWatchlist = watchlist.filter(ticker => ticker.indexOf('-') === -1).join(',')
         dispatch(getAllStats(stockWatchlist))
-        /*watchlist.forEach(ticker => {
-            try {
-                if (ticker.indexOf('-') !== -1) return;
-                dispatch(tickerStatus(ticker)).unwrap()
-            } catch (error) {
-                console.log(error.error)
-                setError(error.error.toString());
-            }
-        });*/
     }
     const refreshPositions = async () => {
         try {
@@ -97,6 +91,15 @@ const Market = ({ data }) => {
             refreshPositions();
         }
     }, [settings]);
+
+    useEffect(() => {
+        const h = new Date().getHours();
+        const m = new Date().getMinutes();
+        if (h >= 9 && h <= 20) {
+            refreshTickers();
+            refreshPositions();
+        }
+    }, [currentMinute]);
 
     useEffect(() => {
         if (error) {

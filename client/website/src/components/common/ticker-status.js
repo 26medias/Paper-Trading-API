@@ -11,7 +11,7 @@ import { CheckCircleTwoTone } from '@ant-design/icons';
 
 import classNames from 'classnames';
 
-const TickerStatus = ({ ticker, isCrypto }) => {
+const TickerStatus = ({ ticker, isCrypto, price }) => {
     const dispatch = useDispatch();
     const navigate = useNavigate();
     const [form] = Form.useForm();
@@ -26,13 +26,14 @@ const TickerStatus = ({ ticker, isCrypto }) => {
     const [inference, setInference] = useState(null);
     const [score, setScore] = useState(0);
 
+    const [signals, setSignals] = useState(null);
+    const [prevSignals, setPrevSignals] = useState(null);
+
     const API_URL = process.env.REACT_APP_API_ENDPOINT;
 
     const status = useSelector(state => getStatus(state, ticker));
 
     const timeframes = ["1min", "5min", "30min", "1h", "1d", "5d"];
-
-
 
     const hasSignal = () => {
         let output = {hasSignal: false};
@@ -57,8 +58,19 @@ const TickerStatus = ({ ticker, isCrypto }) => {
         if (status) {
             setRnd(Math.random());
             //runInference();
-            const signals = hasSignal();
-            if (signals.hasSignal) {
+            // Save the previous signal
+            setPrevSignals(signals);
+            const signalResponse = hasSignal();
+            setSignals(signalResponse);
+
+            let needNotification = false;
+            timeframes.forEach((timeframe) => {
+                if (signalResponse[timeframe] && (!prevSignals || (prevSignals && !prevSignals[timeframe]))) {
+                    needNotification = true;
+                }
+            })
+
+            if (needNotification) {
                 window.snd_buy.play();
             }
         }
@@ -234,7 +246,7 @@ const TickerStatus = ({ ticker, isCrypto }) => {
                     {status.ticker}
                 </div>
                 <div className='ticker-status__price' onClick={() => setDisplayChart(!displayChart)}>
-                    ${data.Close.toFixed(4)}
+                    ${price?.toFixed(4)}
                 </div>
                 <div className='ticker-status__status' onClick={() => setDisplayChart(!displayChart)}>
                     <div className='ticker-status__status__data'>

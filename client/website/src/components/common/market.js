@@ -7,6 +7,7 @@ import TickerStatus from './ticker-status';
 import { fetchWatchlist, fetchAccount, getAccount, getWatchlist, tickerStatus, getAllStats, fetchPortfolio, getPortfolio } from '../../slices/tradeSlice';
 import { db } from '../../firebaseConfig';
 import { doc, onSnapshot } from 'firebase/firestore';
+import { w3cwebsocket as W3CWebSocket } from 'websocket';
 
 import './market.less';
 import Account from './account';
@@ -126,26 +127,66 @@ const Market = ({ data }) => {
         return () => unsubscribe();
     }, []);
 
+
+    const [prices, setPrices] = useState({});
+    useEffect(() => {
+        if (!watchlist) return;
+        const client = new W3CWebSocket(`wss://socket.polygon.io/stocks`);
+        const symbols = watchlist.filter(item => item.indexOf('-')==-1);
+
+        client.onopen = () => {
+            console.log('WebSocket Client Connected');
+            client.send(JSON.stringify({ action: 'auth', params: 'jHDLJmGkm6KtI4H31plpE64mODvl_SMg' }));
+
+            // Subscribe to the symbols
+            symbols.forEach(symbol => {
+                client.send(JSON.stringify({ action: 'subscribe', params: `T.${symbol}` }));
+            });
+        };
+
+        client.onmessage = (message) => {
+            const data = JSON.parse(message.data);
+            data.forEach((msg) => {
+                if (msg.ev === 'T') { // Trade event
+                    setPrices(prevPrices => ({
+                        ...prevPrices,
+                        [msg.sym]: msg.p
+                    }));
+                }
+            });
+        };
+
+        client.onclose = () => {
+            console.log('WebSocket Client Disconnected');
+        };
+
+        return () => {
+            client.close();
+        };
+    }, [watchlist]);
+
+
+
     return (
         <div className='market'>
             <div className='market__header'>
                 <Account settings={settings} />
             </div>
             <div className='market__content'>
-                {watchlist && (
+                {watchlist && prices && (
                     <>
                         <div className='market__data'>
                             {false && cryptoWatchlist.map((ticker) => (
                                 <TickerStatus ticker={ticker} key={ticker} isCrypto />
                             ))}
                             {stockWatchlist.map((ticker) => (
-                                <TickerStatus ticker={ticker} key={ticker} />
+                                <TickerStatus ticker={ticker} key={ticker} price={prices[ticker]} />
                             ))}
                         </div>
                     </>
                 )}
 
-                <Portfolio />
+                <Portfolio prices={prices} />
 
                 {settings && (
                     <div className='market__settings'>

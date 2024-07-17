@@ -135,7 +135,6 @@ const tradeSlice = createSlice({
             })
             .addCase(getAllStats.fulfilled, (state, action) => {
                 for (const symbol in action.payload) {
-                    console.log({symbol, value:action.payload[symbol]})
                     state.status[symbol] = action.payload[symbol];
                 }
             })

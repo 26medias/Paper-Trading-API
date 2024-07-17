@@ -1,5 +1,5 @@
 .ticker-status {
-    width: 150px;
+    width: 170px;
     border: 1px solid rgba(0,0,0,0.3);
     border-radius: 5px;
     padding: 5px;
@@ -24,6 +24,9 @@
     }
     &--crypto {
         border: 1px solid #ffffff;
+    }
+    &--signal {
+        border: 2px solid #43A047;
     }
 
     
@@ -97,11 +100,12 @@
         &__data {
             width: 100%;
             display: grid;
-            grid-template-columns: repeat(4, 1fr);
+            grid-template-columns: repeat(6, 1fr);
             & > div {
                 & > div {
                     padding: 2px;
-                    font-size: 10px;
+                    font-size: 9px;
+                    text-align: center;
                     color: #ffffff;
                     opacity: 0.7;
                     transition: linear 0.5s background-color;
@@ -120,6 +124,12 @@
                     opacity: 1;
                     border-right: 1px solid #ffffff;
                     background-color: rgb(38, 92, 153);
+                }
+            }
+
+            &__timeframe {
+                &--signal {
+                    border: 1px solid #ffffff;
                 }
             }
         }

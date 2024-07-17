@@ -10,6 +10,7 @@ import { runML } from '../../helpers/ml';
 import { CheckCircleTwoTone } from '@ant-design/icons';
 
 import { useRef } from 'react';
+import classNames from 'classnames';
 
 const TickerStatus = ({ ticker, isCrypto }) => {
     const dispatch = useDispatch();
@@ -30,7 +31,7 @@ const TickerStatus = ({ ticker, isCrypto }) => {
 
     const status = useSelector(state => getStatus(state, ticker));
 
-    const timeframes = ['1min', '1h', '1d', '5d'];
+    const timeframes = ["1min", "5min", "30min", "1h", "1d", "5d"];
 
 
     const buyRef = useRef(new Audio('/buy.mp3'));
@@ -50,7 +51,7 @@ const TickerStatus = ({ ticker, isCrypto }) => {
     useEffect(() => {
         if (status) {
             setRnd(Math.random());
-            runInference();
+            //runInference();
         }
     }, [status]);
 
@@ -94,12 +95,16 @@ const TickerStatus = ({ ticker, isCrypto }) => {
         return `rgb(${interpolatedColor[0]}, ${interpolatedColor[1]}, ${interpolatedColor[2]})`;
     }
 
+    const getLastPrice = () => {
+        if (!status) return;
+        return status["1min"].Close;
+    }
+
     const buy = async () => {
         if (!status) return;
         setIsLoading(true);
-        const data = status.last_10[status.last_10.length-1];
         try {
-            const response = await dispatch(doBuy([ticker, qty, data.Close])).unwrap();
+            const response = await dispatch(doBuy([ticker, qty, getLastPrice()])).unwrap();
             await refresh();
             setIsLoading(false);
             console.log(response)
@@ -112,9 +117,8 @@ const TickerStatus = ({ ticker, isCrypto }) => {
     const sell = async () => {
         if (!status) return;
         setIsLoading(true);
-        const data = status.last_10[status.last_10.length-1];
         try {
-            const response = await dispatch(doSell([ticker, qty, data.Close])).unwrap();
+            const response = await dispatch(doSell([ticker, qty, getLastPrice()])).unwrap();
             await refresh();
             setIsLoading(false);
             console.log(response)
@@ -137,7 +141,7 @@ const TickerStatus = ({ ticker, isCrypto }) => {
 
             timeframes.forEach(timeframe => {
                 columns.forEach(column => {
-                    const value = status.status[timeframe][column]
+                    const value = status[timeframe][column]
                     inferenceData.push(value);
                 })
             })
@@ -188,22 +192,35 @@ const TickerStatus = ({ ticker, isCrypto }) => {
     const range_score = [-1, 1];
 
     const handleChange = (e) => {
-        // Get the new value from the input
-        const newValue = e.target.value;
-    
-        // Set the new value to the state
-        setQty(newValue);
-    
-        // Log the new value (for demonstration purposes)
-        console.log(newValue);
+        setQty(e.target.value);
     };
 
     const extraClass = isCrypto ? 'ticker-status--crypto' : '';
 
+    const timeframeHasSignal = (timeframe) => {
+        const data = status[timeframe];
+        return data.MarketCycle >= 10 && data.MarketCycle <= 30 && data.MarketCycle_1 <= 20 && data.MarketCycle_2 <= 20 && data.delta_1 > 0 && data.delta_2 > 0
+    }
+
+    const hasSignal = () => {
+        let output = {hasSignal: false};
+        for (const i in timeframes) {
+            output[timeframes[i]] = timeframeHasSignal(timeframes[i]);
+            if (output[timeframes[i]]) {
+                output.hasSignal = true;
+            }
+        }
+        return output;
+    }
+
     const renderBox = () => {
         if (!status) return;
-        console.log({status})
-        const data = status.last_10[status.last_10.length-1];
+        const data = status["1min"];
+        const signals = hasSignal();
+
+        const classes = classNames(`ticker-status ticker-status--status`, extraClass, {
+            "ticker-status--signal": signals.hasSignal
+        })
 
         const change_score = score ? colorFromGradient({
             value: score,
@@ -212,7 +229,7 @@ const TickerStatus = ({ ticker, isCrypto }) => {
         }) : 'rgba(0,0,0,0.1)';
 
         return (
-            <div className={`ticker-status ticker-status--status ${extraClass}`}>
+            <div className={classes}>
                 <div className='ticker-status__side' style={{backgroundColor:change_score}}></div>
                 <div className='ticker-status__ticker' onClick={() => setDisplayChart(!displayChart)}>
                     {status.ticker}
@@ -223,30 +240,33 @@ const TickerStatus = ({ ticker, isCrypto }) => {
                 <div className='ticker-status__status' onClick={() => setDisplayChart(!displayChart)}>
                     <div className='ticker-status__status__data'>
                         {timeframes.map((timeframe) => {
-                            let value = status.status[timeframe].value ? status.status[timeframe].value.toFixed(2) : '-';
-                            let value1 = status.status[timeframe].value1 ? status.status[timeframe].value1.toFixed(2) : '-';
-                            let value2 = status.status[timeframe].value2 ? status.status[timeframe].value2.toFixed(2) : '-';
+                            let value = status[timeframe].MarketCycle ? status[timeframe].MarketCycle.toFixed(2) : '-';
+                            let value1 = status[timeframe].MarketCycle_1 ? status[timeframe].MarketCycle_1.toFixed(2) : '-';
+                            let value2 = status[timeframe].MarketCycle_2 ? status[timeframe].MarketCycle_2.toFixed(2) : '-';
 
-                            const mc_color = status.status[timeframe].value ? colorFromGradient({
-                                value: status.status[timeframe].value,
+                            const mc_color = status[timeframe].MarketCycle ? colorFromGradient({
+                                value: status[timeframe].MarketCycle,
                                 range: range_mc,
                                 cmap: cmap_mc
                             }) : 'rgba(0,0,0,0.1)';
 
-                            const change_color1 = status.status[timeframe].delta0 ? colorFromGradient({
-                                value: status.status[timeframe].delta1,
+                            const change_color1 = status[timeframe].delta_1 ? colorFromGradient({
+                                value: status[timeframe].delta_0,
                                 range: range_change,
                                 cmap: cmap_change
                             }) : 'rgba(0,0,0,0.1)';
 
-                            const change_color2 = status.status[timeframe].delta1 ? colorFromGradient({
-                                value: status.status[timeframe].delta2,
+                            const change_color2 = status[timeframe].delta_2 ? colorFromGradient({
+                                value: status[timeframe].delta_1,
                                 range: range_change,
                                 cmap: cmap_change
                             }) : 'rgba(0,0,0,0.1)';
 
+                            const timeframeClasses = classNames('ticker-status__status__data__timeframe', {
+                                'ticker-status__status__data__timeframe--signal': signals[timeframe]
+                            })
                             return (
-                                <div key={`${ticker}-${timeframe}`}>
+                                <div className={timeframeClasses} key={`${ticker}-${timeframe}`}>
                                     <div style={{backgroundColor:mc_color}}>{value}</div>
                                     <div style={{backgroundColor:change_color1}}>{value1}</div>
                                     <div style={{backgroundColor:change_color2}}>{value2}</div>
@@ -275,7 +295,7 @@ const TickerStatus = ({ ticker, isCrypto }) => {
                     ))}
                 </div>
                 <div className='ticker-status__date'>
-                    {new Date(data.Datetime*1000).toLocaleTimeString()}
+                    {new Date(data.Datetime).toLocaleTimeString()}
                 </div>
                 
             </div>
@@ -283,7 +303,7 @@ const TickerStatus = ({ ticker, isCrypto }) => {
     }
     const renderChart = () => {
         if (!status) return;
-        const data = status.last_10[status.last_10.length-1];
+        const data = status["1min"];
         return (
             <div className={`ticker-status ticker-status--chart ${extraClass}`}>
                 <div className='ticker-status__ticker' onClick={() => setDisplayChart(!displayChart)}>

@@ -25,6 +25,12 @@ class DataExtender:
 
         data['MarketCycle'] = self.ta.MarketCycle(donchianPrice, rsiPrice, srsiPrice, donchianPeriod, donchianSmoothing, rsiPeriod, rsiSmoothing, srsiPeriod, srsiSmoothing, srsiK, srsiD, rsiWeight, srsiWeight, dcoWeight)
 
+        data['MarketCycle_1'] = data['MarketCycle'].shift(1)
+        data['MarketCycle_2'] = data['MarketCycle'].shift(2)
+        MarketCycle_3 = data['MarketCycle'].shift(3)
+        data['delta_0'] = data['MarketCycle'] - data['MarketCycle_1']
+        data['delta_1'] = data['MarketCycle_1'] - data['MarketCycle_2']
+        data['delta_2'] = data['MarketCycle_2'] - MarketCycle_3
         return data
 
     def zip_timeframes(self, data, timeframes, columns):

@@ -4,27 +4,25 @@ import numpy as np
 
 class HelperTA:
     def Stochastic(self, data, period=14):
-        low = data.rolling(window=period).min()
-        high = data.rolling(window=period).max()
+        low = data.rolling(window=period, min_periods=1).min()
+        high = data.rolling(window=period, min_periods=1).max()
         k_percent = 100 * ((data - low) / (high - low))
         return k_percent
 
     def RSI(self, data, period=14):
-        delta = data.diff()
-        up, down = delta.copy(), delta.copy()
-        up[up < 0] = 0
-        down[down > 0] = 0
-        roll_up = up.ewm(span=period).mean()
-        roll_down = down.abs().ewm(span=period).mean()
-        RS = roll_up / roll_down
-        RSI = 100.0 - (100.0 / (1.0 + RS))
-        return RSI
+        delta = data.diff(1)
+        gain = (delta.where(delta > 0, 0)).rolling(window=period, min_periods=1).mean()
+        loss = (-delta.where(delta < 0, 0)).rolling(window=period, min_periods=1).mean()
+
+        rs = gain / loss
+        rsi = 100 - (100 / (1 + rs))
+        return rsi
 
     def stockRSI(self, data, K=5, D=5, rsiPeriod=20, stochPeriod=3):
-        rsi = self.RSI(data, period=rsiPeriod)
-        stoch = self.Stochastic(rsi, period=stochPeriod)
-        k = stoch.rolling(window=K).mean()
-        d = k.rolling(window=D).mean()
+        rsi = self.RSI(data, period=rsiPeriod).bfill()
+        stoch = self.Stochastic(rsi, period=stochPeriod).bfill()
+        k = stoch.rolling(window=K, min_periods=1).mean().bfill()
+        d = k.rolling(window=D, min_periods=1).mean().bfill()
         return (k, d)
 
     def DCO(self, data, donchianPeriod=20, smaPeriod=3):
@@ -41,4 +39,5 @@ class HelperTA:
         k, d = self.stockRSI(srsiPrice, srsiK, srsiD, srsiPeriod, srsiSmoothing)
         aggr = ((DCO + DCOs) * dcoWeight + (rsiValue + rsiK) * rsiWeight + (k + d) * srsiWeight) / (2 * (dcoWeight + rsiWeight + srsiWeight))
         return aggr
+
     

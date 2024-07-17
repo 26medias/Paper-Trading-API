@@ -132,7 +132,7 @@ const Market = ({ data }) => {
                 {watchlist && (
                     <>
                         <div className='market__data'>
-                            {cryptoWatchlist.map((ticker) => (
+                            {false && cryptoWatchlist.map((ticker) => (
                                 <TickerStatus ticker={ticker} key={ticker} isCrypto />
                             ))}
                             {stockWatchlist.map((ticker) => (
